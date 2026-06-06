@@ -2,6 +2,10 @@
 
 A simple beginner/student DOM project inspired by Hyderabad Metro. It uses a small demo station list for Red, Blue, and Green lines.
 
+## 🔗 Live Demo
+
+https://shaiksohelll.github.io/Hyderabad-Metro-Go/
+
 ## Run
 
 Open `index.html` in a browser. No backend and no installation required.
