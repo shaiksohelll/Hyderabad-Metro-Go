@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hyderabad Metro Go</title>
+    <meta name="description" content="A simple Hyderabad Metro route planner built with HTML, CSS, Bootstrap CDN, Tailwind CDN, and vanilla JavaScript." />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="container-fluid px-3">
+          <h1 class="app-title m-0">Hyderabad Metro Go</h1>
+        </div>
+      </header>
+
+      <main class="app-content">
+        <section class="panel">
+          <div class="panel-body">
+            <h2 class="panel-title">Route Planner</h2>
+            <form id="plannerForm">
+              <div class="mb-2">
+                <label for="fromSelect" class="form-label mb-1">From</label>
+                <select id="fromSelect" class="form-select form-select-sm"></select>
+              </div>
+              <div class="mb-2">
+                <label for="toSelect" class="form-label mb-1">To</label>
+                <select id="toSelect" class="form-select form-select-sm"></select>
+              </div>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <button type="submit" class="btn btn-primary btn-sm">Find Route</button>
+                <button id="swapBtn" type="button" class="btn btn-outline-primary btn-sm">Swap</button>
+                <button id="resetBtn" type="button" class="btn btn-outline-secondary btn-sm">Reset</button>
+              </div>
+              <div id="plannerError" class="text-danger small mt-2"></div>
+              <div class="form-text mt-2">Tip: click a station button to see details and set From/To.</div>
+            </form>
+
+            <hr class="my-3" />
+
+            <h2 class="panel-title mb-2">Recent Trips</h2>
+            <div id="recentTrips" class="d-flex flex-wrap gap-2"></div>
+            <div id="recentEmpty" class="text-muted small">No recent trips yet.</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-body">
+            <h2 class="panel-title">Route Result</h2>
+            <div id="emptyResult" class="text-muted small">Select From and To, then click “Find Route”.</div>
+            <div id="resultCard" class="d-none">
+              <div id="resultSummaryLine" class="small fw-semibold"></div>
+              <div class="small text-muted mt-1" id="resultEstimateNote"></div>
+
+              <hr class="my-2" />
+              <ol id="stopsList" class="small ps-3 mb-0"></ol>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-body">
+            <h2 class="panel-title">Fare Calculator</h2>
+            <div id="calcEmpty" class="text-muted small">Select From and To to see fare and estimates.</div>
+            <div id="calcCard" class="d-none">
+              <div class="small"><span class="text-muted">Stops:</span> <strong id="calcStops">0</strong></div>
+              <div class="small"><span class="text-muted">Interchange:</span> <strong id="calcInterchanges">None</strong></div>
+              <div class="small"><span class="text-muted">Fare:</span> <strong id="calcFare">₹0</strong></div>
+              <div class="small"><span class="text-muted">Distance:</span> <strong id="calcDistance">~0 km</strong></div>
+              <div class="small"><span class="text-muted">Time:</span> <strong id="calcTime">~0 min</strong></div>
+              <div class="small text-muted mt-1" id="calcEstimateNote"></div>
+            </div>
+
+            <hr class="my-3" />
+
+            <h2 class="panel-title">Stations</h2>
+            <div class="mb-2">
+              <span class="badge bg-danger">Red</span>
+              <div id="stationsRed" class="d-flex flex-wrap gap-2 mt-2"></div>
+            </div>
+            <div class="mb-2">
+              <span class="badge bg-primary">Blue</span>
+              <div id="stationsBlue" class="d-flex flex-wrap gap-2 mt-2"></div>
+            </div>
+            <div class="mb-2">
+              <span class="badge bg-success">Green</span>
+              <div id="stationsGreen" class="d-flex flex-wrap gap-2 mt-2"></div>
+            </div>
+
+            <hr class="my-3" />
+
+            <h2 class="panel-title">Station Facilities</h2>
+            <div class="p-2 bg-light border rounded" id="stationDetail">
+              <div class="text-muted small">Click a station button to see details here.</div>
+            </div>
+
+            <hr class="my-3" />
+
+            <h2 class="panel-title mb-2">Travel Tip</h2>
+            <div id="travelTip" class="small text-muted"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
