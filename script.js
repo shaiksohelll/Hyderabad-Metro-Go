@@ -353,6 +353,14 @@ const appState = {
 };
 
 const RECENT_KEY = "hmg_recent";
+const RECENT_SEPARATOR = " -> ";
+const LEGACY_RECENT_SEPARATOR = " → ";
+
+const parseTrip = (trip) => {
+  const separator = trip.includes(RECENT_SEPARATOR) ? RECENT_SEPARATOR : LEGACY_RECENT_SEPARATOR;
+  const [from, to] = trip.split(separator);
+  return { from, to };
+};
 
 const getRecentTrips = () => {
   try {
@@ -363,7 +371,7 @@ const getRecentTrips = () => {
     return list
       .filter((t) => typeof t === "string")
       .filter((t) => {
-        const [from, to] = t.split(" → ");
+        const { from, to } = parseTrip(t);
         return validStations.has(from) && validStations.has(to);
       })
       .slice(0, 5);
@@ -373,7 +381,11 @@ const getRecentTrips = () => {
 };
 
 const setRecentTrips = (trips) => {
-  localStorage.setItem(RECENT_KEY, JSON.stringify(trips.slice(0, 5)));
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(trips.slice(0, 5)));
+  } catch {
+    // Ignore storage failures so route planning still works in private or restricted browsers.
+  }
 };
 
 const renderRecentTrips = () => {
@@ -386,7 +398,7 @@ const renderRecentTrips = () => {
     btn.className = "btn btn-outline-secondary btn-sm";
     btn.textContent = t;
     btn.addEventListener("click", () => {
-      const [from, to] = t.split(" → ");
+      const { from, to } = parseTrip(t);
       ui.fromSelect.value = from;
       ui.toSelect.value = to;
       handleFindRoute();
@@ -396,7 +408,7 @@ const renderRecentTrips = () => {
 };
 
 const saveTrip = (from, to) => {
-  const trip = `${from} → ${to}`;
+  const trip = `${from}${RECENT_SEPARATOR}${to}`;
   const existing = getRecentTrips();
   const next = [trip, ...existing.filter((t) => t !== trip)];
   setRecentTrips(next);
@@ -431,12 +443,13 @@ const renderRoute = (route) => {
   const timeMin = estimateTimeMinutes({ stops: route.stopCount, interchanges: route.interchanges.length });
 
   ui.resultSummaryLine.textContent =
-    `${route.from} → ${route.to}` +
+    `${route.from} -> ${route.to}` +
     ` | Stops: ${route.stopCount}` +
     ` | Interchange: ${interchangeText}` +
     ` | Fare: ₹${fare}` +
     ` | Distance: ~${distanceKm} km` +
     ` | Time: ~${timeMin} min`;
+  ui.resultEstimateNote.textContent = "Fare, distance, and time are demo estimates based on stop count.";
 
   ui.stopsList.innerHTML = "";
   route.steps.forEach((s, stepIndex) => {
@@ -492,6 +505,7 @@ const renderFareCalculator = (route) => {
   ui.calcFare.textContent = `₹${estimateFare(route.stopCount)}`;
   ui.calcDistance.textContent = `~${distanceKm} km`;
   ui.calcTime.textContent = `~${timeMin} min`;
+  ui.calcEstimateNote.textContent = "Estimates may differ from official Hyderabad Metro fares and timings.";
 };
 
 // Computes the route (BFS) and fills BOTH panels (Route Result + Fare Calculator).
@@ -548,7 +562,7 @@ const updatePanels = ({ saveRecent, showPlannerError }) => {
     } else {
       const lineKey = route.directLineKey || route.steps[0]?.lineKey;
       const lineName = LINES[lineKey]?.name || "metro";
-      base = `Direct ride on the ${lineName} Line — no line change needed.`;
+      base = `Direct ride on the ${lineName} Line - no line change needed.`;
     }
 
     const parkingNotes = [];

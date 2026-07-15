@@ -6,9 +6,8 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
 }
 
 body {
@@ -16,8 +15,8 @@ body {
 }
 
 .app-shell {
-  height: 100vh;
-  width: 100vw;
+  min-height: 100dvh;
+  width: 100%;
   display: grid;
   grid-template-rows: auto 1fr;
 }
@@ -70,7 +69,15 @@ body {
 }
 
 @media (max-width: 991.98px) {
+  .app-shell {
+    display: block;
+  }
+
   .app-content {
     grid-template-columns: 1fr;
+  }
+
+  .panel {
+    overflow: visible;
   }
 }
