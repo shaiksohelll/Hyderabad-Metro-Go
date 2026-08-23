@@ -23,8 +23,8 @@ const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 
 async function runViewport(width, port) {
-  const chromium = process.env.CHROMIUM || ['/usr/bin/chromium', '/usr/bin/chromium-browser', 'google-chrome', 'chromium'].find((candidate) => candidate === 'chromium' || candidate.includes('/') || process.env.PATH?.split(':').some((dir) => candidate.startsWith(`${dir}/`))) || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', `--window-size=${width},900`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=/tmp/hmg-browser-qa-${port}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
+  const chromium = process.env.CHROMIUM || 'chromium';
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--no-zygote', '--remote-debugging-address=127.0.0.1', `--window-size=${width},900`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=/tmp/hmg-browser-qa-${port}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
   try {
     let tabs = [];
     for (let attempt = 0; attempt < 20; attempt += 1) {

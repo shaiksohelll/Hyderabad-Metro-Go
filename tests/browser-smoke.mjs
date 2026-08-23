@@ -19,8 +19,8 @@ const server = createServer(async (request, response) => {
   } catch { response.writeHead(500); response.end(); }
 });
 await new Promise((resolve) => server.listen(4175, '127.0.0.1', resolve));
-const chromium = process.env.CHROMIUM || ['/usr/bin/chromium', '/usr/bin/chromium-browser', 'google-chrome', 'chromium'].find((candidate) => candidate === 'chromium' || candidate.includes('/') || process.env.PATH?.split(':').some((dir) => candidate.startsWith(`${dir}/`))) || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
+const chromium = process.env.CHROMIUM || 'chromium';
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--no-zygote', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 try {
