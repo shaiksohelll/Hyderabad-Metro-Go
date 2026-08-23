@@ -1,0 +1,11 @@
+{
+  "name": "hyderabad-metro-go",
+  "version": "1.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:route": "node tests/route-engine-smoke.mjs",
+    "check": "for file in src/*.js; do node --check \"$file\"; done",
+    "verify": "npm run check && npm run test:route"
+  }
+}

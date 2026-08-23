@@ -1,0 +1,9 @@
+{
+  "name": "Hyderabad Metro Go",
+  "short_name": "Metro Go",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#143b5d",
+  "description": "A passenger-first Hyderabad Metro journey planner."
+}
