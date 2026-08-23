@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light;
+  --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --canvas: #f4f2ed;
+  --canvas-deep: #e8e8e4;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-solid: #ffffff;
+  --surface-soft: #f9f8f5;
+  --ink: #111827;
+  --ink-soft: #656b77;
+  --ink-faint: #8b909a;
+  --midnight: #09172f;
+  --midnight-soft: #132442;
+  --border: rgba(17, 24, 39, 0.12);
+  --border-strong: rgba(17, 24, 39, 0.2);
+  --red: #e34c4c;
+  --red-soft: #fde9e7;
+  --blue: #3271ea;
+  --blue-soft: #e7efff;
+  --green: #1f9a6e;
+  --green-soft: #e5f5ee;
+  --amber: #d5803b;
+  --focus: #1167d8;
+  --shadow-sm: 0 1px 2px rgba(9, 23, 47, 0.05), 0 6px 20px rgba(9, 23, 47, 0.06);
+  --shadow-lg: 0 24px 70px rgba(9, 23, 47, 0.13);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-base: 280ms;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #10141b;
+  --canvas-deep: #0b0f15;
+  --surface: rgba(29, 35, 46, 0.88);
+  --surface-solid: #1c222d;
+  --surface-soft: #222a36;
+  --ink: #f8fafc;
+  --ink-soft: rgba(248, 250, 252, 0.68);
+  --ink-faint: rgba(248, 250, 252, 0.5);
+  --midnight: #eaf1ff;
+  --midnight-soft: #d2def3;
+  --border: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --red: #f17168;
+  --red-soft: rgba(241, 113, 104, 0.12);
+  --blue: #6ea1ff;
+  --blue-soft: rgba(110, 161, 255, 0.13);
+  --green: #63c79f;
+  --green-soft: rgba(99, 199, 159, 0.12);
+  --focus: #89b5ff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.42);
+}
