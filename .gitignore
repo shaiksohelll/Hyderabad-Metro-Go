@@ -1,2 +1,7 @@
-.ideavo/project
+node_modules/
+dist/
+.vite/
 *.log
+.DS_Store
+.env
+.ideavo/project

@@ -1,0 +1,20 @@
+{
+  "name": "Hyderabad Metro Go",
+  "short_name": "Metro Go",
+  "description": "A map-led Hyderabad Metro journey planner.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f2ed",
+  "theme_color": "#09172f",
+  "lang": "en",
+  "categories": ["travel", "navigation"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='42' fill='%2309172f'/><path d='M51 135V57h24v27h42V57h24v78h-24v-27H75v27z' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
