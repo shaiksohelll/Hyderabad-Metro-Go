@@ -68,6 +68,10 @@ a { color: var(--indigo); }
 .secondary-action { background: transparent; color: var(--indigo); }
 .text-button, .back-link { min-height: auto; padding: 3px 0; border: 0; background: transparent; color: var(--indigo); text-decoration: underline; text-underline-offset: 3px; }
 .field-help, .source-note { margin: 16px 0 0; color: var(--muted); font-size: 12px; }
+.disabled-field { min-height: 42px; padding: 7px 9px; border: 1px dashed var(--line); background: rgb(93 104 112 / 0.05); }
+.disabled-field strong { color: var(--muted); font-family: var(--sans); font-size: 13px; letter-spacing: normal; text-transform: none; }
+.pending-transfer { margin-top: 14px; padding: 10px 12px; border-left: 4px solid var(--amber); background: #fff6dd; color: var(--ink); font-size: 12px; }
+.stage-note { display: block; color: var(--amber) !important; font-family: var(--mono); font-size: 10px !important; text-transform: uppercase; }
 .form-error { margin-top: 14px; padding: 10px 12px; border-left: 4px solid var(--red); background: #fbe8e5; color: #7e201d; font-size: 13px; }
 
 .result-panel { margin-top: 25px; }
@@ -124,7 +128,7 @@ a { color: var(--indigo); }
 .station-row:hover { background: rgb(20 59 93 / 0.06); }
 .station-name { font-weight: 700; }
 .station-lines, .saved-row span, .setting-row small { color: var(--muted); font-size: 12px; }
-.saved-row > div, .setting-row > span { display: grid; gap: 3px; }
+.saved-row > div, .setting-row > span, .setting-row > div { display: grid; gap: 3px; }
 .notice-box { margin: 22px 0; padding: 16px; border-left: 4px solid var(--amber); background: #fff6dd; }
 .notice-box p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
 .station-levels { border-top: 1px solid var(--ink); }
@@ -155,6 +159,10 @@ a { color: var(--indigo); }
 [data-theme='dark'] .map-label { fill: var(--ink); }
 [data-contrast='high'] { --line: #17212b; --focus: #003cb3; }
 [data-contrast='high'] .status-tag, [data-contrast='high'] button, [data-contrast='high'] select { border-width: 2px; }
+[data-theme='dark'][data-contrast='high'] { --ink: #ffffff; --muted: #f1f5f6; --indigo: #ffffff; --line: #ffffff; --focus: #ffe082; --indigo-soft: #34464d; }
+[data-theme='dark'][data-contrast='high'] .primary-action { background: #ffffff; color: #11181d; border-color: #ffffff; }
+[data-theme='dark'][data-contrast='high'] .secondary-action, [data-theme='dark'][data-contrast='high'] .text-button { color: #ffffff; }
+[data-theme='dark'][data-contrast='high'] .pending-transfer { background: #2f260d; color: #ffffff; }
 
 @media (max-width: 1000px) {
   .desktop-layout { display: block; }

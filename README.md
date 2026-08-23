@@ -16,7 +16,7 @@ Open `index.html` through a static server so module scripts and the service work
 python3 -m http.server 4173
 ```
 
-Then open `http://localhost:4173/`.
+Then open `http://localhost:4173/Hyderabad-Metro-Go/`.
 
 ## Architecture
 

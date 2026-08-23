@@ -1,33 +1,51 @@
-import { displayName, lineOrders, lines, stations } from './data.js';
+import { displayName, lineOrders, lines } from './data.js';
 
-const geometry = {
-  red: [[50, 52], [95, 52], [140, 52], [185, 52], [230, 52], [275, 52], [320, 52], [365, 52], [410, 52], [455, 52], [500, 52], [545, 52], [590, 52], [635, 52], [680, 52], [725, 52], [770, 52], [815, 52], [860, 52], [905, 52], [950, 52], [995, 52], [1040, 52], [1085, 52], [1130, 52], [1175, 52]],
-  blue: [[500, 52], [500, 95], [500, 138], [500, 181], [500, 224], [500, 267], [500, 310], [500, 353], [500, 396], [500, 439], [500, 482], [500, 525], [500, 568], [500, 611], [500, 654], [500, 697], [500, 740], [500, 783], [500, 826], [500, 869], [500, 912], [500, 955], [500, 998], [500, 1041], [500, 1084], [500, 1127]],
-  green: [[500, 52], [545, 97], [590, 142], [635, 187], [680, 232], [725, 277], [770, 322], [815, 367], [860, 412], [905, 457]],
+const VIEWBOX = { width: 1250, height: 760 };
+const redIndex = (stationId) => lineOrders.red.indexOf(stationId);
+const blueIndex = (stationId) => lineOrders.blue.indexOf(stationId);
+const redPoint = (index) => [80 + index * 45, 300];
+const bluePoint = (index) => [530, 300 + (index - blueIndex('ameerpet')) * 34];
+const greenPoint = (index) => {
+  const start = [700, 70];
+  const end = [redPoint(redIndex('mg-bus-station'))[0], 300];
+  const ratio = index / (lineOrders.green.length - 1);
+  return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
 };
 
+export function mapPointFor(lineId, stationId) {
+  const index = lineOrders[lineId].indexOf(stationId);
+  if (lineId === 'red') return redPoint(index);
+  if (lineId === 'blue') return bluePoint(index);
+  return greenPoint(index);
+}
+
 function stationLabel(stationId) {
-  return displayName(stationId, document.documentElement.lang === 'te' ? 'te' : 'en');
+  const locale = document.documentElement.lang === 'te' ? 'te' : 'en';
+  return displayName(stationId, locale);
+}
+
+function linePath(lineId) {
+  return lineOrders[lineId].map((stationId) => mapPointFor(lineId, stationId).join(',')).join(' ');
 }
 
 export function renderMap({ highlightedIds = [], selectedStationId = null } = {}) {
   const highlighted = new Set(highlightedIds);
-  const parts = ['<svg class="network-map" viewBox="0 0 1230 1180" role="img" aria-labelledby="map-title map-desc">', '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Schematic Red, Blue, and Green line geometry with station labels available in the text alternative below.</desc>'];
+  const parts = [`<svg class="network-map" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}" role="img" aria-labelledby="map-title map-desc">`, '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Line geometry is derived from the application network model. Red and Blue connect at Ameerpet; Red and Green connect at MG Bus Station. Parade Ground and JBS Parade Ground are separate nodes until their exact transfer edge is verified.</desc>'];
   Object.entries(lineOrders).forEach(([lineId, order]) => {
-    const points = geometry[lineId];
     const color = lines[lineId].color;
-    const path = points.map(([x, y]) => `${x},${y}`).join(' ');
-    parts.push(`<polyline points="${path}" fill="none" stroke="${color}" stroke-width="${highlighted.size ? 10 : 7}" stroke-linecap="round" stroke-linejoin="round" opacity="${highlighted.size ? 0.38 : 0.85}" />`);
-    order.forEach((stationId, index) => {
-      const [x, y] = points[index];
+    parts.push(`<polyline points="${linePath(lineId)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />`);
+    order.forEach((stationId) => {
+      const [x, y] = mapPointFor(lineId, stationId);
       const active = highlighted.has(stationId);
       const selected = selectedStationId === stationId;
-      parts.push(`<circle cx="${x}" cy="${y}" r="${active || selected ? 12 : 8}" fill="#fff" stroke="${color}" stroke-width="${active || selected ? 6 : 4}" />`);
-      if (active || selected || index % 4 === 0 || stationId === 'ameerpet' || stationId === 'mg-bus-station') {
+      const shared = stationId === 'ameerpet' || stationId === 'mg-bus-station';
+      parts.push(`<circle cx="${x}" cy="${y}" r="${active || selected || shared ? 11 : 7}" fill="#fff" stroke="${color}" stroke-width="${active || selected || shared ? 5 : 3}" />`);
+      const index = order.indexOf(stationId);
+      if (active || selected || shared || index % 4 === 0 || stationId === 'parade-ground' || stationId === 'jbs-parade-ground') {
+        const labelX = lineId === 'blue' ? x + 16 : x;
+        const labelY = lineId === 'green' ? y + 20 : y - 15;
         const anchor = lineId === 'blue' ? 'start' : 'middle';
-        const labelX = lineId === 'blue' ? x + 18 : x;
-        const labelY = lineId === 'blue' ? y + 5 : y - 16;
-        parts.push(`<text x="${labelX}" y="${labelY}" text-anchor="${anchor}" class="map-label">${stationLabel(stationId)}</text>`);
+        parts.push(`<text x="${labelX}" y="${labelY}" text-anchor="${anchor}" class="map-label">${escapeXml(stationLabel(stationId))}</text>`);
       }
     });
   });
@@ -35,8 +53,12 @@ export function renderMap({ highlightedIds = [], selectedStationId = null } = {}
   return parts.join('');
 }
 
+function escapeXml(value = '') {
+  return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+}
+
 export function textMapAlternative() {
-  return Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${lines[lineId].name} (${lines[lineId].code})</strong>: ${order.map((stationId) => stationLabel(stationId)).join(' → ')}</p>`).join('');
+  return Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${escapeXml(lines[lineId].name)} (${lines[lineId].code})</strong>: ${order.map((stationId) => escapeXml(stationLabel(stationId))).join(' → ')}</p>`).join('');
 }
 
 export function routeStationIds(route) {

@@ -1,13 +1,15 @@
 import { displayName } from './data.js';
-import { announce, applyPreferences, focusSelector } from './a11y.js';
+import { announce, applyPreferences, closeDialog, focusSelector, openDialog, trapDialogKeydown } from './a11y.js';
 import { loadPersisted, persistState } from './persistence.js';
 import { planJourney } from './route-engine.js';
 import { dispatch, getState, subscribe } from './store.js';
-import { listenForBack, navigate, viewFromLocation } from './router.js';
+import { appBasePath, assetUrl } from './config.js';
+import { listenForBack, navigate, stationIdFromLocation, viewFromLocation } from './router.js';
 import { renderApp } from './view.js';
 
 const app = document.querySelector('#app');
 let renderQueued = false;
+let pendingState = null;
 
 function render(state = getState()) {
   app.innerHTML = renderApp(state);
@@ -16,11 +18,15 @@ function render(state = getState()) {
 }
 
 function queueRender(state) {
+  pendingState = state;
   if (renderQueued) return;
   renderQueued = true;
   window.requestAnimationFrame(() => {
+    const latestState = pendingState || getState();
+    pendingState = null;
     renderQueued = false;
-    render(state);
+    render(latestState);
+    if (pendingState) queueRender(pendingState);
   });
 }
 
@@ -32,7 +38,12 @@ subscribe((state, action) => {
 dispatch({ type: 'HYDRATE', payload: loadPersisted() });
 const initialView = viewFromLocation();
 if (initialView !== 'home') dispatch({ type: 'NAVIGATE', view: initialView });
-listenForBack((view) => dispatch({ type: 'NAVIGATE', view, announcement: `Opened ${view}.` }));
+const initialStationId = stationIdFromLocation();
+if (initialStationId) dispatch({ type: 'SELECT_STATION', stationId: initialStationId, stationName: displayName(initialStationId, getState().locale) });
+listenForBack((view, stationId) => {
+  if (stationId) dispatch({ type: 'SELECT_STATION', stationId, stationName: displayName(stationId, getState().locale) });
+  else dispatch({ type: 'NAVIGATE', view, announcement: `Opened ${view}.` });
+});
 render();
 
 function planFromForm(form) {
@@ -40,20 +51,13 @@ function planFromForm(form) {
   const formData = new FormData(form);
   const originStationId = formData.get('from');
   const destinationStationId = formData.get('to');
-  const objective = formData.get('objective') || 'fastest';
-  const stepFree = document.querySelector('#step-free')?.checked || false;
+  const objective = formData.get('objective') || 'topology';
   dispatch({ type: 'SET_ORIGIN', stationId: originStationId });
   dispatch({ type: 'SET_DESTINATION', stationId: destinationStationId });
   dispatch({ type: 'SET_OBJECTIVE', objective });
-  dispatch({ type: 'SET_ACCESSIBILITY', payload: { stepFree } });
   dispatch({ type: 'PLAN_START' });
   window.setTimeout(() => {
-    const result = planJourney({
-      originStationId,
-      destinationStationId,
-      objective,
-      accessibility: { stepFree },
-    });
+    const result = planJourney({ originStationId, destinationStationId, objective });
     if (result.status === 'success') {
       dispatch({ type: 'PLAN_SUCCESS', result });
       focusSelector('.result-panel');
@@ -121,11 +125,11 @@ document.addEventListener('click', (event) => {
   }
   if (action === 'show-sources') {
     const dialog = document.querySelector('#source-dialog');
-    if (dialog) { dialog.hidden = false; focusSelector('.dialog-close'); }
+    if (dialog) openDialog(dialog, event.target.closest('[data-action="show-sources"]'));
   }
   if (action === 'close-sources') {
     const dialog = document.querySelector('#source-dialog');
-    if (dialog) dialog.hidden = true;
+    if (dialog) closeDialog(dialog);
   }
   if (action === 'toggle-menu') {
     const menu = document.querySelector('#mobile-menu');
@@ -137,6 +141,15 @@ document.addEventListener('click', (event) => {
   }
 });
 
+document.addEventListener('keydown', (event) => {
+  const dialog = document.querySelector('#source-dialog');
+  if (dialog && trapDialogKeydown(event, dialog)) return;
+  if (event.key === 'Escape') {
+    const menu = document.querySelector('#mobile-menu');
+    if (menu && !menu.hidden) menu.hidden = true;
+  }
+});
+
 document.addEventListener('change', (event) => {
   const pref = event.target.closest('[data-pref]');
   if (!pref) return;
@@ -144,5 +157,5 @@ document.addEventListener('change', (event) => {
 });
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register(assetUrl('sw.js'), { scope: appBasePath() }).catch(() => {});
 }

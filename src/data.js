@@ -8,6 +8,12 @@ const source = {
   confidence: 'high',
 };
 
+const networkSource = {
+  ...source,
+  sourceUrl: 'https://ltmetro.com/find-trip-details/',
+  notes: 'Official L&T trip selector used for the static station list; line membership and physical transfer metadata still require field-level review.',
+};
+
 const stationSource = {
   ...source,
   sourceUrl: 'https://ltmetro.com/stations/ameerpet/',
@@ -48,6 +54,7 @@ const definitions = [
   ['assembly', 'Assembly', { en: 'Assembly', te: 'అసెంబ్లీ' }, ['red']],
   ['nampally', 'Nampally', { en: 'Nampally', te: 'నాంపల్లి' }, ['red']],
   ['gandhi-bhavan', 'Gandhi Bhavan', { en: 'Gandhi Bhavan', te: 'గాంధీ భవన్' }, ['red']],
+  ['osmania-medical-college', 'Osmania Medical College', { en: 'Osmania Medical College', te: 'ఉస్మానియా మెడికల్ కాలేజ్' }, ['red']],
   ['mg-bus-station', 'MG Bus Station', { en: 'MG Bus Station', te: 'ఎంజీ బస్ స్టేషన్' }, ['red', 'green']],
   ['malakpet', 'Malakpet', { en: 'Malakpet', te: 'మలక్‌పేట్' }, ['red']],
   ['new-market', 'New Market', { en: 'New Market', te: 'న్యూ మార్కెట్' }, ['red']],
@@ -89,7 +96,7 @@ const definitions = [
 ];
 
 export const stations = Object.fromEntries(definitions.map(([id, name, localizedNames, lineIds]) => [id, {
-  id, name, localizedNames, lineIds, aliases: [name.toLowerCase()], provenance: stationSource,
+  id, name, localizedNames, lineIds, aliases: [name.toLowerCase()], provenance: networkSource,
 }]));
 
 const redOrder = definitions.filter(([, , , lineIds]) => lineIds.includes('red')).map(([id]) => id);
@@ -97,7 +104,26 @@ const blueOrder = ['nagole', 'uppal', 'stadium', 'ngri', 'habsiguda', 'tarnaka',
 const greenOrder = ['jbs-parade-ground', 'secunderabad-west', 'gandhi-hospital', 'musheerabad', 'rtc-x-roads', 'chikkadpally', 'narayanaguda', 'sultan-bazaar', 'mg-bus-station'];
 
 export const lineOrders = { red: redOrder, blue: blueOrder, green: greenOrder };
-export const interchangeStationIds = ['ameerpet', 'mg-bus-station'];
+
+export const transferConnections = [
+  {
+    fromLine: 'red', fromStation: 'ameerpet', toLine: 'blue', toStation: 'ameerpet', transferStationId: 'ameerpet',
+    provenance: { ...source, status: 'pending-verification', confidence: 'medium', notes: 'Official timing source names Ameerpet as a Red/Blue interchange; physical transfer path and duration require verification.' },
+  },
+  {
+    fromLine: 'red', fromStation: 'mg-bus-station', toLine: 'green', toStation: 'mg-bus-station', transferStationId: 'mg-bus-station',
+    provenance: { ...source, status: 'pending-verification', confidence: 'medium', notes: 'Official timing source names MG Bus Station as a Red/Green interchange; physical transfer path and duration require verification.' },
+  },
+];
+
+export const pendingTransferConnections = [
+  {
+    fromLine: 'blue', fromStation: 'parade-ground', toLine: 'green', toStation: 'jbs-parade-ground', transferStationId: 'jbs-parade-ground',
+    provenance: { ...source, status: 'pending-verification', confidence: 'medium', notes: 'Official timing source names JBS Parade Ground as a Green/Blue interchange, but this exact Parade Ground-to-JBS Parade Ground edge is not yet verified.' },
+  },
+];
+
+export const interchangeStationIds = ['ameerpet', 'mg-bus-station', 'jbs-parade-ground'];
 
 export const stationDetail = {
   'ameerpet': {

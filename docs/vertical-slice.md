@@ -16,7 +16,7 @@ The slice includes a mobile-first planner, route result with explicit start/ride
 
 ## Interaction evidence
 
-The private smoke test verified direct route success, explicit post-transfer ride stages, non-zero transfer edges, unavailable timing and fare states, same-station validation, distinct Parade Ground/JBS Parade Ground identities, accessible-route uncertainty, Live Journey static mode, Ameerpet fixture boundary, source dialog, Telugu locale, dark mode, and same-station error announcement.
+The private smoke test verified direct route success, explicit post-transfer ride stages, non-zero transfer edges, unavailable timing and fare states, same-station validation, distinct Parade Ground/JBS Parade Ground identities, accessibility data withheld, Live Journey static mode, Ameerpet fixture boundary, source dialog, Telugu locale, dark mode, and same-station error announcement.
 
 ## Data honesty boundary
 

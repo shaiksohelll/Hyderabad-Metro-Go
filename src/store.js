@@ -6,8 +6,8 @@ const initialState = {
   highContrast: false,
   originStationId: 'miyapur',
   destinationStationId: 'raidurg',
-  objective: 'fastest',
-  accessibility: { stepFree: false },
+  objective: 'topology',
+  accessibility: { status: 'unavailable' },
   routeResult: null,
   selectedStationId: null,
   selectedStageIndex: null,
@@ -49,7 +49,7 @@ export function reduce(current, action) {
     case 'SET_OBJECTIVE':
       return { ...current, objective: action.objective, routeResult: null };
     case 'SET_ACCESSIBILITY':
-      return { ...current, accessibility: { ...current.accessibility, ...action.payload }, routeResult: null };
+      return current;
     case 'SWAP':
       return { ...current, originStationId: current.destinationStationId, destinationStationId: current.originStationId, routeResult: null, plannerMessage: '' };
     case 'RESET':

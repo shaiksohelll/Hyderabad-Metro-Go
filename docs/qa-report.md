@@ -1,41 +1,45 @@
-# Hyderabad Metro Go — QA Report
+# Hyderabad Metro Go — Corrected QA Report
 
 ## Scope
 
-This report covers the approved Direction A vertical slice on branch `manus-1.6/hyderabad-metro-go-rebuild`. It includes the shared Direction B route-stage strip and Direction C dark/Live Journey behavior. It does not claim production transit-data correctness for facts that remain unavailable.
+This report covers the correction pass for PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The correction pass addresses project-subpath hosting, refreshable static routes, authoritative station-list reconciliation, exact transfer-edge assertions, route-derived schematic geometry, latest-state rendering, accessibility semantics, unsupported claims, pull-request CI, and reviewed screenshots.
 
-## Verification summary
+## Verification matrix
 
 | Check | Result | Evidence |
 |---|---|---|
 | JavaScript syntax | PASS | `npm run check` |
-| Route-engine behavior | PASS | `npm run test:route` |
-| Whitespace/error diff check | PASS | `git diff --check` |
-| Legacy CDN/architecture references | PASS | Static grep check |
-| Static semantic structure | PASS | Private static QA script |
-| Browser interaction smoke | PASS | Route, Live Journey, station detail, source dialog, locale, dark mode, same-station validation |
-| Responsive overflow | PASS | CDP QA at 390×844, 768×1024, 1440×900 |
-| Interactive naming/labels | PASS | Browser QA: all buttons named, selects labelled |
-| Navigation landmarks/skip link | PASS | Browser QA: `main`, `nav`, skip link present |
-| Reduced motion preference | PASS | Browser QA: `data-motion="reduced"` applied |
-| Rendered visual inspection | PASS | Screenshots inspected at all three required viewports |
+| Route-engine and exact-edge tests | PASS | `npm run test:route` |
+| Project-subpath/static-host fallback | PASS | `npm run test:static-host` |
+| Browser smoke | PASS | `npm run test:browser` |
+| Responsive/accessibility browser QA | PASS | `npm run test:browser-qa` |
+| Pull-request CI trigger | PASS | `.github/workflows/pages.yml` includes `pull_request` |
+| Legacy CDN and retired-file check | PASS | `hmg_static_qa.py` |
+| Whitespace/error check | PASS | `git diff --check` |
+| Visual state review | PASS | 30 PNG captures and three contact sheets |
 
-## Route-engine cases
+## Hosting and URL correction
 
-The route smoke suite verifies direct success, explicit transfer success, explicit post-transfer ride leg, non-zero transfer edges, unavailable timing and fare, same-station validation, distinct Parade Ground/JBS Parade Ground identities, explicit connection between those identities, and accessible-route uncertainty. The engine is deterministic and uses stable IDs; it does not use station display labels as graph keys.
+All app assets use `/Hyderabad-Metro-Go/` in the document shell, manifest, service worker cache, and service-worker registration. Runtime route construction uses the same base through `src/config.js`. `404.html` contains the project-subpath shell, allowing GitHub Pages to serve the application shell for refreshes of `/Hyderabad-Metro-Go/plan`, `/Hyderabad-Metro-Go/map`, and `/Hyderabad-Metro-Go/stations/{id}`. The static-host test verifies the project base, module asset, manifest scope, service-worker base, and deep-link fallback.
 
-## Responsive and accessibility checks
+## Network and route correction
 
-The browser QA reported no horizontal overflow at all required sizes. All visible buttons had a text or ARIA name, all selects were contained in labels, the page exposed `main` and `nav` landmarks, and the skip link was present. The reduced-motion preference changed the document state and the CSS removes non-essential transition/animation behavior. The UI includes live announcement regions, alert semantics for planner errors, visible focus styles, semantic headings, text route alternatives, and line names/codes alongside color.
+`Osmania Medical College` is restored to the Red Line station identity list and is included in the stable-ID line order. `Parade Ground` is a Blue Line station identity and `JBS Parade Ground` is a separate Green Line identity. The unsupported direct Parade Ground-to-JBS Parade Ground transfer edge is not inserted into the graph. The route test asserts that exact edge absence and validates the supported graph path rather than treating the two display names as one station. Ameerpet and MG Bus Station transfer edges are present with provenance and `pending-verification` status; the route result surfaces that status instead of implying a confirmed transfer path.
 
-The 390×844 render uses a compact mobile header, stacked planner fields, vertical route reading, and no fixed viewport shell. The 768×1024 render uses a compact header and sequential readable sections. The 1440×900 render uses the quiet navigation rail, primary route-reading column, and optional map/context column required by the approved visual direction.
+The schematic map reads `lineOrders` from the same data module used by the route graph. Its coordinate functions align only Ameerpet and MG Bus Station as known shared anchors. The tests assert those alignments and assert that Parade Ground and JBS Parade Ground do not overlap. The map’s description states that exact Parade Ground transfer geometry remains pending verification.
 
-## Performance observations
+## State and accessibility correction
 
-The static local shell measured approximately 92 KB for the `src/` directory, with the largest files being `view.js` at 18.3 KB, `styles.css` at 16.3 KB, and `route-engine.js` at 8.9 KB. The HTML shell is 801 bytes and uses no third-party CDN scripts, styles, font requests, map library, image payload, or 3D runtime. Local loopback response times were under 1 ms for the sampled shell, modules, and stylesheet; this is a local sanity check, not a production Web Vitals measurement.
+Animation-frame rendering now stores the latest pending state and renders that state after batching; intermediate dispatches cannot leave the DOM stale. Route-stage selection focuses the stage detail region after the latest render. Planner validation alerts are focusable and receive focus. The source dialog restores focus to its trigger on close, closes on Escape, and traps Tab focus while open. Navigation buttons expose `aria-current="page"` on the visible current tree, and the application now contains one semantic `h1`.
 
-## Known limitations and follow-up gates
+Settings use a semantic `fieldset` and `legend`. The planner no longer offers time planning, fastest routing, step-free preference, or accessible routing as if those capabilities were available. It offers static topology and fewest confirmed changes, while accessible routing is presented as pending station data. Named terminal directions are used in ride stages, and a start stage is always present.
 
-The route engine currently provides verified-static topology only. Timing, fare, platform, exit, facility, parking, accessibility equipment, service status, and live arrivals remain unavailable. The Ameerpet station page is explicitly `DEMO / NOT VERIFIED`. The visual map is schematic and not a replacement for a source-backed official network map. Production data ingestion, source review, accessible transfer metadata, full line/edge test coverage, and a real GitHub Pages deployment check remain follow-up work.
+Dark mode and high contrast now have explicit dark/high-contrast tokens, including light-on-dark control boundaries and a high-contrast action state. Telugu labels and reduced motion are covered by browser tests. The 200% text check reports no horizontal overflow at all required widths.
 
-The service worker caches the static app shell and returns the app shell on failed GET requests. It does not cache or simulate live transit feeds. No merge to `main` was performed.
+## Reviewed screenshots
+
+The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and 200% text captures at 390×844, 768×1024, and 1440×900. The contact sheets were visually inspected. The route-result images show the promised start stage, named terminal direction, and pending-transfer disclosure. The dialog and error images show the corrected focusable boundaries and alert treatment.
+
+## Known boundaries
+
+The build continues to provide verified-static topology only. Timing, current arrivals, fare, platform, exit, parking, facility, accessibility equipment, and live-service claims remain unavailable. A station detail view remains a structural fixture marked `DEMO / NOT VERIFIED`. Transfer paths are pending verification unless the relevant edge metadata changes from that state through a provenance-backed update. The service worker caches only the static shell and never simulates live transit freshness.
