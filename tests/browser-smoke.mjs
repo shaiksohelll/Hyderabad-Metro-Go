@@ -50,8 +50,9 @@ try {
     return false;
   };
   await cdp('Runtime.enable');
+  await waitFor("document.querySelector('#from-station') && document.querySelector('#to-station') && document.querySelector('#planner-form')");
   await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit();");
-  await waitFor("document.querySelector('.result-panel:not(.empty-state)')");
+  await waitFor("document.querySelector('.stage-start') && document.body.textContent.includes('toward L B Nagar') && document.body.textContent.includes('Transfer verification pending')");
   check('route result renders', Boolean(await evaluate("document.querySelector('#result-heading')")));
   check('route has start stage', (await evaluate("document.querySelector('.stage-start')?.textContent.includes('Start at')")) === true);
   check('route uses named terminal', (await evaluate("document.body.textContent.includes('toward L B Nagar')")) === true);
