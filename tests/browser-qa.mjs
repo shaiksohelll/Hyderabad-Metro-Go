@@ -43,13 +43,25 @@ async function runViewport(width, port) {
       socket.send(JSON.stringify({ id: requestId, method, params }));
     });
     const evaluate = async (expression) => (await cdp('Runtime.evaluate', { expression, returnByValue: true })).result?.value;
+    const waitFor = async (expression, timeout = 5000) => {
+      const deadline = Date.now() + timeout;
+      while (Date.now() < deadline) {
+        if (await evaluate(expression)) return true;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      return false;
+    };
     await cdp('Runtime.enable');
+    await waitFor("document.querySelector('h1') && document.querySelector('[data-nav=\\\"settings\\\"]')");
     const initial = await evaluate("({width: window.innerWidth, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, h1: document.querySelectorAll('h1').length === 1, current: [...document.querySelectorAll('[aria-current=page]')].filter((element) => !element.closest('[hidden]')).length === 1, buttons: [...document.querySelectorAll('button')].every((b) => Boolean(b.textContent.trim() || b.getAttribute('aria-label'))), selects: [...document.querySelectorAll('select')].every((s) => Boolean(s.closest('label'))), landmarks: Boolean(document.querySelector('main') && document.querySelector('nav')), skip: Boolean(document.querySelector('.skip-link'))})");
     for (const [name, ok] of Object.entries(initial)) { if (name !== 'width') check(`${width}: ${name}`, name === 'overflow' ? !ok : ok); }
-    await evaluate("document.querySelector('[data-nav=\"settings\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 80));
-    await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 80));
+    await evaluate("document.querySelector('[data-nav=\"settings\"]')?.click()");
+    await waitFor("document.querySelector('[data-action=\\\"toggle-locale\\\"]')");
+    await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
+    await waitFor("document.documentElement.lang === 'te'");
     check(`${width}: Telugu locale`, await evaluate("document.documentElement.lang === 'te'"));
-    await evaluate("document.querySelector('[data-action=\"toggle-theme\"]')?.click(); document.querySelector('[data-pref=\"highContrast\"]')?.click(); document.querySelector('[data-pref=\"reducedMotion\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 80));
+    await evaluate("document.querySelector('[data-action=\"toggle-theme\"]')?.click(); document.querySelector('[data-pref=\"highContrast\"]')?.click(); document.querySelector('[data-pref=\"reducedMotion\"]')?.click()");
+    await waitFor("document.documentElement.dataset.theme === 'dark' && document.documentElement.dataset.contrast === 'high' && document.documentElement.dataset.motion === 'reduced'");
     check(`${width}: dark theme`, await evaluate("document.documentElement.dataset.theme === 'dark'"));
     check(`${width}: high contrast`, await evaluate("document.documentElement.dataset.contrast === 'high'"));
     check(`${width}: reduced motion`, await evaluate("document.documentElement.dataset.motion === 'reduced'"));
