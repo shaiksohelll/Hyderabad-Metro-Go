@@ -19,13 +19,19 @@ const server = createServer(async (request, response) => {
   } catch { response.writeHead(500); response.end(); }
 });
 await new Promise((resolve) => server.listen(4175, '127.0.0.1', resolve));
-const browser = spawn(process.env.CHROMIUM || 'chromium', ['--headless=new', '--no-sandbox', '--disable-gpu', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
+const chromium = process.env.CHROMIUM || ['/usr/bin/chromium', '/usr/bin/chromium-browser', 'google-chrome', 'chromium'].find((candidate) => candidate === 'chromium' || candidate.includes('/') || process.env.PATH?.split(':').some((dir) => candidate.startsWith(`${dir}/`))) || 'chromium';
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 try {
-  await new Promise((resolve) => setTimeout(resolve, 1300));
-  const tabs = await (await fetch('http://127.0.0.1:9238/json')).json();
-  const socket = new WebSocket(tabs[0].webSocketDebuggerUrl);
+  let tabs = [];
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try { tabs = await (await fetch('http://127.0.0.1:9238/json')).json(); if (tabs.length) break; } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  if (!tabs.length) throw new Error('Chromium remote debugger did not start on port 9238');
+  const page = tabs.find((tab) => tab.type === 'page' && tab.url.includes(base)) || tabs.find((tab) => tab.type === 'page') || tabs[0];
+  const socket = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
   let id = 0;
   const cdp = (method, params = {}) => new Promise((resolve) => {

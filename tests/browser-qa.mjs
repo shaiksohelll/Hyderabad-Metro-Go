@@ -23,11 +23,17 @@ const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 
 async function runViewport(width, port) {
-  const browser = spawn(process.env.CHROMIUM || 'chromium', ['--headless=new', '--no-sandbox', '--disable-gpu', `--window-size=${width},900`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=/tmp/hmg-browser-qa-${port}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
+  const chromium = process.env.CHROMIUM || ['/usr/bin/chromium', '/usr/bin/chromium-browser', 'google-chrome', 'chromium'].find((candidate) => candidate === 'chromium' || candidate.includes('/') || process.env.PATH?.split(':').some((dir) => candidate.startsWith(`${dir}/`))) || 'chromium';
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', `--window-size=${width},900`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=/tmp/hmg-browser-qa-${port}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
-    const socket = new WebSocket(tabs[0].webSocketDebuggerUrl);
+    let tabs = [];
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try { tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); if (tabs.length) break; } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    if (!tabs.length) throw new Error(`Chromium remote debugger did not start on port ${port}`);
+    const page = tabs.find((tab) => tab.type === 'page' && tab.url.includes(base)) || tabs.find((tab) => tab.type === 'page') || tabs[0];
+    const socket = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
     let id = 0;
     const cdp = (method, params = {}) => new Promise((resolve) => {
