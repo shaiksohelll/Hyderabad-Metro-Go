@@ -26,11 +26,11 @@ jobs:
           node-version: 22
       - name: Install Chromium for browser checks
         run: |
-          if ! command -v google-chrome-stable >/dev/null 2>&1 && ! command -v google-chrome >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1; then
+          if ! command -v chromium >/dev/null 2>&1; then
             sudo apt-get update
             sudo apt-get install -y chromium
           fi
-          BROWSER=$(command -v google-chrome-stable || command -v google-chrome || command -v chromium)
+          BROWSER=$(command -v chromium || command -v google-chrome-stable || command -v google-chrome)
           echo "CHROMIUM=$BROWSER" >> "$GITHUB_ENV"
           "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --dump-dom data:,hmg-browser-probe >/dev/null
       - run: npm run verify
