@@ -20,7 +20,7 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(4175, '127.0.0.1', resolve));
 const chromium = process.env.CHROMIUM || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--no-zygote', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 try {
@@ -41,14 +41,23 @@ try {
     socket.send(JSON.stringify({ id: requestId, method, params }));
   });
   const evaluate = async (expression) => (await cdp('Runtime.evaluate', { expression, returnByValue: true })).result?.value;
+  const waitFor = async (expression, timeout = 5000) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await evaluate(expression)) return true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+  };
   await cdp('Runtime.enable');
   await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit();");
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await waitFor("document.querySelector('.result-panel:not(.empty-state)')");
   check('route result renders', Boolean(await evaluate("document.querySelector('#result-heading')")));
   check('route has start stage', (await evaluate("document.querySelector('.stage-start')?.textContent.includes('Start at')")) === true);
   check('route uses named terminal', (await evaluate("document.body.textContent.includes('toward L B Nagar')")) === true);
   check('route has pending transfer notice', (await evaluate("document.body.textContent.includes('Transfer verification pending')")) === true);
-  await evaluate("document.querySelector('.route-stage')?.click()"); await new Promise((resolve) => setTimeout(resolve, 80));
+  await evaluate("document.querySelector('.route-stage')?.click()");
+  await waitFor("document.activeElement?.classList.contains('stage-detail')");
   check('route-stage detail receives focus', (await evaluate("document.activeElement?.classList.contains('stage-detail')")) === true);
   await evaluate("document.querySelector('[data-action=\\\"show-sources\\\"]')?.click()");
   check('source dialog opens', (await evaluate("!document.querySelector('#source-dialog').hidden")) === true);
