@@ -13,9 +13,9 @@ const greenPoint = (index) => {
 };
 
 const labelIndices = {
-  red: new Set([0, 5, 10, 18, 20, 24]),
-  blue: new Set([0, 3, 6, 8, 10, 13, 19, 22]),
-  green: new Set([0, 2, 4, 6, 8]),
+  red: new Set([0, 10, 24]),
+  blue: new Set([0, 8, 13, 22]),
+  green: new Set([0, 8]),
 };
 const patternByLine = { solid: '', dash: '16 10', dot: '3 10' };
 
