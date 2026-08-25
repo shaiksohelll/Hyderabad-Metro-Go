@@ -69,6 +69,13 @@ check('PG→JBS has exactly one transfer', pgJbs.route.transfers === 1);
 check('PG→JBS transfer names both stations', pgJbs.route.steps.some((s) => s.type === 'change' && s.crossStation && s.text.includes('Parade Ground') && s.text.includes('JBS Parade Ground')));
 check('PG→JBS transfer discloses unavailable walking path', pgJbs.route.steps.some((s) => s.type === 'change' && s.note?.includes('Walking path and transfer duration are unavailable')));
 check('PG→JBS has no fabricated ride segment', pgJbs.route.rideSegments === 0);
+check('PG→JBS ends with arrive', pgJbs.route.steps.at(-1)?.type === 'arrive');
+check('PG→JBS arrival station matches destination', pgJbs.route.steps.at(-1)?.stationId === 'jbs-parade-ground');
+
+const jbsPg = planJourney({ originStationId: 'jbs-parade-ground', destinationStationId: 'parade-ground' });
+check('JBS → Parade Ground route succeeds', jbsPg.status === 'success');
+check('JBS→PG ends with arrive', jbsPg.route.steps.at(-1)?.type === 'arrive');
+check('JBS→PG arrival station matches destination', jbsPg.route.steps.at(-1)?.stationId === 'parade-ground');
 
 // Map assertions
 check('Ameerpet interchange anchors align', mapPointFor('red', 'ameerpet').join(',') === mapPointFor('blue', 'ameerpet').join(','));

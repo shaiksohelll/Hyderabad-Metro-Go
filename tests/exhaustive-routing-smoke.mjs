@@ -16,8 +16,13 @@ for (const originStationId of stationIds) {
       const result = planJourney({ originStationId, destinationStationId });
       if (result.status === 'success') {
         successCount += 1;
-        if (!result.route?.steps?.length || result.route.steps[0].type !== 'start') failure = `${originStationId}->${destinationStationId}: missing start stage`;
-        if (result.route.edges.some((edge) => edge.status === 'verified-static') || result.route.steps.some((step) => step.status === 'verified-static')) failure = `${originStationId}->${destinationStationId}: contradictory verified-static status`;
+        const steps = result.route?.steps || [];
+        const startCount = steps.filter((step) => step.type === 'start').length;
+        const arriveCount = steps.filter((step) => step.type === 'arrive').length;
+        if (startCount !== 1 || steps[0]?.type !== 'start') failure = `${originStationId}->${destinationStationId}: expected exactly one start stage`;
+        if (arriveCount !== 1 || steps.at(-1)?.type !== 'arrive') failure = `${originStationId}->${destinationStationId}: expected exactly one arrive stage`;
+        if (steps.at(-1)?.stationId !== destinationStationId) failure = `${originStationId}->${destinationStationId}: arrival station mismatch`;
+        if (result.route.edges.some((edge) => edge.status === 'verified-static') || steps.some((step) => step.status === 'verified-static')) failure = `${originStationId}->${destinationStationId}: contradictory verified-static status`;
       } else if (result.status === 'unreachable') {
         unreachableCount += 1;
       } else {

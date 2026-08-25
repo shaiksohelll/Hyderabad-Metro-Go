@@ -133,7 +133,7 @@ function directionTerminal(lineId, direction) {
 function buildSteps(edges, originStationId) {
   const steps = [{ type: 'start', stationId: originStationId, status: 'official-static-topology', text: `Start at ${stations[originStationId].name}.` }];
   let previousLine = null;
-  edges.forEach((edge, index) => {
+  edges.forEach((edge) => {
     const from = parseNode(edge.from);
     const to = parseNode(edge.to);
     if (edge.type === 'transfer') {
@@ -153,8 +153,10 @@ function buildSteps(edges, originStationId) {
 
       previousLine = from.lineId;
     }
-    if (index === edges.length - 1) steps.push({ type: 'arrive', stationId: to.stationId, lineId: to.lineId, status: edge.status, text: `Arrive at ${stations[to.stationId].name}.` });
   });
+  const lastEdge = edges.at(-1);
+  const destination = parseNode(lastEdge.to);
+  steps.push({ type: 'arrive', stationId: destination.stationId, lineId: destination.lineId, status: lastEdge.status, text: `Arrive at ${stations[destination.stationId].name}.` });
   return steps;
 }
 
