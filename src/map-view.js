@@ -13,9 +13,8 @@ const greenPoint = (index) => {
 };
 
 const labelIndices = {
-  red: new Set([0, 10, 24]),
-  blue: new Set([0, 8, 13, 22]),
-  green: new Set([0, 8]),
+  en: { red: new Set([0, 10, 24]), blue: new Set([0, 8, 13, 22]), green: new Set([0, 8]) },
+  te: { red: new Set([10]), blue: new Set([0]), green: new Set([0]) },
 };
 const patternByLine = { solid: '', dash: '16 10', dot: '3 10' };
 
@@ -56,6 +55,7 @@ export function renderMap({ highlightedIds = [], selectedStationId = null, local
     parts.push(`<text x="${legendX + 54}" y="${y + 5}" class="map-legend-label">${escapeXml(line.code)} · ${escapeXml(line.name)}</text>`);
   });
   parts.push('</g>');
+  const labelsForLocale = labelIndices[locale] || labelIndices.en;
   Object.entries(lineOrders).forEach(([lineId, order]) => {
     const line = lines[lineId];
     parts.push(`<polyline data-line-code="${escapeXml(line.code)}" points="${linePath(lineId)}" fill="none" stroke="${line.color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${patternByLine[line.pattern]}" />`);
@@ -66,7 +66,7 @@ export function renderMap({ highlightedIds = [], selectedStationId = null, local
       const selected = selectedStationId === stationId;
       const shared = stationId === 'ameerpet' || stationId === 'mg-bus-station';
       parts.push(`<circle data-line-id="${lineId}" data-station-id="${stationId}" cx="${x}" cy="${y}" r="${active || selected || shared ? 11 : 7}" fill="#fff" stroke="${line.color}" stroke-width="${active || selected || shared ? 5 : 3}" />`);
-      if (labelIndices[lineId].has(index)) {
+      if (labelsForLocale[lineId].has(index)) {
         const placement = labelPlacement(lineId, index, point);
         parts.push(`<text x="${placement.x}" y="${placement.y}" text-anchor="${placement.anchor}" class="map-label">${escapeXml(stationLabel(stationId, locale))}</text>`);
       }

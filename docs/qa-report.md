@@ -31,7 +31,7 @@ The prior root-font-size and pinch/page-magnification checks have been removed. 
 
 The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values for station circles and English/Telugu station and legend labels, then checks padded-bound containment, visibility, and pairwise collision. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
 
-The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. The text alternative repeats the codes and names.
+The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. English uses a sparse terminal/interchange label set and Telugu uses an even sparser collision-safe label set; the text alternative remains complete for every station and line order.
 
 ## Service-worker failure boundaries
 
