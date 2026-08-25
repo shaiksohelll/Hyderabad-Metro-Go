@@ -4,19 +4,19 @@ Hyderabad Metro Go is a passenger-first, static GitHub Pages journey planner for
 
 ## Current implementation boundary
 
-This branch contains the approved high-fidelity vertical slice for the **Signage Ledger** visual direction. The route engine currently provides verified-static topology only. Scheduled duration, fare, platform, exit, facility, parking, accessibility-equipment, arrival, and live-service claims remain unavailable unless individually sourced and verified. Station detail is visibly marked `DEMO / NOT VERIFIED`.
+This branch contains the approved high-fidelity vertical slice for the **Signage Ledger** visual direction. The route engine currently provides a partial modeled topology only. Scheduled duration, fare, platform, exit, facility, parking, accessibility-equipment, arrival, and live-service claims remain unavailable unless individually sourced and verified. Station detail is visibly marked `DEMO / NOT VERIFIED`.
 
 The route result uses a semantic numbered stage strip for start, ride, change, and arrive steps. Direction C behavior is reserved for Live Journey and dark/high-contrast modes. No 3D, gradients, glows, decorative blur, fake analytics, or marketing-led hero screen is included.
 
 ## Run locally
 
-Serve the repository root with a static server so ES modules, deep-link fallback fixtures, and the service worker can be exercised. From the repository root:
+Serve the repository parent with a static server so the project directory is available at the same `/Hyderabad-Metro-Go/` path used by GitHub Pages. From the repository root:
 
 ```bash
-python3 -m http.server 4173 --bind 127.0.0.1
+python3 -m http.server 4173 --directory .. --bind 127.0.0.1
 ```
 
-For the local-root deployment mode, open `http://127.0.0.1:4173/`. The `/Hyderabad-Metro-Go/` prefix is the GitHub Pages project path; the committed static-host test simulates that prefix and the `404.html` refresh fallback:
+Open `http://127.0.0.1:4173/Hyderabad-Metro-Go/`. The `/Hyderabad-Metro-Go/` prefix is the GitHub Pages project path; the committed static-host and browser tests follow this URL and exercise the `404.html` deep-link fallback:
 
 ```bash
 npm run verify

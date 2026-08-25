@@ -69,9 +69,13 @@ try {
   check('dialog restores trigger focus', (await evaluate("document.activeElement?.getAttribute('data-action') === 'show-sources'")) === true);
   await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.click()");
   check('mobile menu opens with aria-expanded true', (await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'true'")) === true);
-  await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
-  await waitFor("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false'");
-  check('Escape closes mobile menu and resets aria-expanded', (await evaluate("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false'")) === true);
+  check('opening mobile menu focuses first link', (await evaluate("document.activeElement?.getAttribute('data-nav') === 'home'")) === true);
+  await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab' });
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab' });
+  check('mobile menu Tab order advances to next link', (await evaluate("document.activeElement?.getAttribute('data-nav') === 'plan'")) === true);
+  await evaluate("document.querySelector('#mobile-menu [data-nav=\\\"plan\\\"]')?.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
+  await waitFor("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'");
+  check('Escape from focused menu link closes and restores trigger focus', (await evaluate("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'")) === true);
   await evaluate("document.querySelector('[data-nav=\\\"settings\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
   await evaluate("document.querySelector('[data-action=\\\"toggle-locale\\\"]')?.click(); if (document.documentElement.dataset.theme !== 'dark') document.querySelector('[data-action=\\\"toggle-theme\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
   check('rapid dispatch renders latest locale', (await evaluate("document.documentElement.lang === 'te'")) === true);

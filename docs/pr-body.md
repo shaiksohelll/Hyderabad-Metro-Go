@@ -1,8 +1,8 @@
 ## Summary
 
-This draft PR contains the second independent-review correction pass for the approved Hyderabad Metro Go rebuild on `manus-1.6/hyderabad-metro-go-rebuild`. It keeps PR #3 draft-only and does not modify or merge `main`.
+This draft PR contains the final focused correction pass for the approved Hyderabad Metro Go rebuild on `manus-1.6/hyderabad-metro-go-rebuild`. It keeps PR #3 draft-only and does not modify or merge `main`.
 
-The correction pass adds exact viewport assertions and evidence at 390×844, 768×1024, and 1440×900; real Chromium page-scale zoom/reflow checks; route, dialog, error, control, and mobile-menu operability checks under zoom; route-model-derived map bounds, padded terminus, label-collision, interchange, and line-pattern assertions; navigation-only service-worker HTML fallback; explicit offline script/style/JSON failure tests; partial topology provenance with owner and refresh metadata; the **Fewest modeled line changes** objective label; Direction A multilingual humanist-sans typography; an explicit partial Telugu-support boundary; improved amber contrast; and correct mobile-menu `aria-expanded` reset on Escape.
+The correction pass adds exact viewport assertions and evidence at 390×844, 768×1024, and 1440×900; documented Chromium effective-CSS-viewport 200%-equivalent reflow checks; route, dialog, error, control, and mobile-menu operability checks under zoom; route-model-derived map bounds, padded terminus, actual rendered SVG label-collision, interchange, and line-pattern assertions; exhaustive all-station-pair routing; navigation-only service-worker HTML fallback; explicit offline script/style/JSON failure tests, including real Chromium origin-offline navigation and asset checks; partial topology provenance with owner and refresh metadata; the **Fewest modeled line changes** objective label; Direction A multilingual humanist-sans typography; an explicit partial Telugu-support boundary; improved amber contrast; and correct mobile-menu `aria-expanded` reset on Escape.
 
 ## Data and routing boundary
 
@@ -10,7 +10,7 @@ The app uses stable station identities and an official L&T source record for the
 
 `Osmania Medical College` is present on the Red Line. `Parade Ground` and `JBS Parade Ground` remain distinct identities. No direct Parade Ground-to-JBS Parade Ground edge is inserted without provenance; the test asserts that exact edge is absent. Ameerpet and MG Bus Station edges carry `pending-verification` transfer metadata, and the route result surfaces that status.
 
-The planner exposes **Best static topology** and **Fewest modeled line changes**. Timing, fare, platform, exit, parking, facility, accessibility-equipment, arrival, and service-status values remain unavailable. Accessible routing is not offered as a selectable capability and is explicitly withheld pending station data. Ride stages use named terminal directions and every route includes a start stage.
+The planner exposes **Best modeled topology** and **Fewest modeled line changes**. Timing, fare, platform, exit, parking, facility, accessibility-equipment, arrival, and service-status values remain unavailable. Accessible routing is not offered as a selectable capability and is explicitly withheld pending station data. Ride stages use named terminal directions and every route includes a start stage.
 
 ## Hosting, service worker, and map corrections
 

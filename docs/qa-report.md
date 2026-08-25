@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report covers the second independent-review correction pass for draft PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The pass addresses exact viewport evidence, real browser zoom and reflow, map geometry, service-worker failure boundaries, topology provenance, multilingual labeling, contrast, mobile-menu semantics, repository documentation, GitHub Actions permissions/concurrency, and stale evidence cleanup.
+This report covers the final focused correction pass for draft PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The pass addresses exact viewport evidence, effective-CSS-viewport reflow, map geometry, service-worker failure boundaries, topology provenance, multilingual labeling, contrast, mobile-menu semantics, repository documentation, GitHub Actions permissions/concurrency, and stale evidence cleanup.
 
 ## Verification matrix
 
@@ -10,25 +10,26 @@ This report covers the second independent-review correction pass for draft PR #3
 |---|---|---|
 | JavaScript syntax | PASS | `npm run check` |
 | Route-engine and exact-edge tests | PASS | `npm run test:route` |
-| Map bounds, padded termini, label collisions, and line patterns | PASS | `npm run test:route` |
+| Exhaustive all-station-pair routing | PASS | `npm run test:exhaustive` — 3,192 ordered pairs |
+| Map bounds, padded termini, actual SVG label collisions, and line patterns | PASS | `npm run test:route` and `npm run test:browser-qa` |
 | Project-subpath/static-host fallback | PASS | `npm run test:static-host` |
-| Service-worker offline navigation and asset failures | PASS | `npm run test:service-worker` |
+| Service-worker offline navigation and asset failures | PASS | `npm run test:service-worker` and `npm run test:service-worker-browser` |
 | Browser smoke, including mobile-menu Escape semantics | PASS | `npm run test:browser` |
-| Exact viewport and real page-scale browser QA | PASS | `npm run test:browser-qa` |
-| Pull-request CI | PASS | [GitHub Actions verification workflow](https://github.com/shaiksohelll/Hyderabad-Metro-Go/actions/workflows/pages.yml) |
+| Exact viewport, actual SVG, locale, and effective-CSS-viewport reflow QA | PASS | `npm run test:browser-qa` |
+| Pull-request CI | PASS | Final green verify check linked in the delivery message and PR checks |
 | Whitespace/error check | PASS | `git diff --check` |
-| Visual state review | PASS | 30 exact-dimension PNGs and three revised contact sheets |
+| Visual state review | PASS | 30 exact-dimension PNGs and three revised contact sheets, reviewed after the final capture |
 | Stale failed CI-log cleanup | PASS | Evidence archive contains only current screenshots, contact sheets, and inventory metadata |
 
 ## Exact viewport and zoom correction
 
 The browser QA harness launches Chromium with explicit width and height, applies matching device metrics, and asserts `window.innerWidth` and `window.innerHeight` before evaluating each viewport. The required dimensions are 390×844, 768×1024, and 1440×900.
 
-The prior root-font-size mutation has been removed. The replacement uses Chromium’s page-scale mechanism at 200% and verifies the resulting `visualViewport.scale`, reflow without horizontal overflow, visible control boxes, route-stage readability and operation, dialog readability and Escape operation, and readable, focused planner errors. The evidence capture script uses the same exact viewport assertions and captures the 200% state after page-scale zoom rather than changing document CSS.
+The prior root-font-size and pinch/page-magnification checks have been removed. The replacement uses Chromium device metrics with a 2× device scale factor and half-width/half-height effective CSS viewport to exercise the 200%-equivalent responsive reflow. It asserts the changed `innerWidth`/`innerHeight`, device pixel ratio, breakpoint behavior, no horizontal document overflow, complete visible control boxes, route-stage readability and operation, dialog fit and Escape operation, and readable, focused planner errors. This is a documented layout-equivalent effective-CSS-viewport method, not a claim of native browser zoom.
 
 ## Map geometry and line identity
 
-The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Label boxes are estimated from the rendered text metrics and checked for pairwise collision and padded-bound containment. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
+The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values for station circles and English/Telugu station and legend labels, then checks padded-bound containment, visibility, and pairwise collision. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
 
 The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. The text alternative repeats the codes and names.
 
@@ -48,7 +49,7 @@ Amber warning text now uses a darker light-mode ink and explicit warning backgro
 
 ## Evidence
 
-The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and real 200% browser-zoom captures at 390×844, 768×1024, and 1440×900. Every PNG is dimension-checked by the inventory generator, and every capture asserts the viewport dimensions before taking the screenshot. Three revised contact sheets are included for visual review. The archive contains no stale failed CI logs.
+The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and effective-CSS-viewport 200%-equivalent reflow captures at 390×844, 768×1024, and 1440×900. Every PNG is dimension-checked by the inventory generator, and every capture asserts the viewport dimensions before taking the screenshot. Three revised contact sheets are included for visual review. The archive contains no stale failed CI logs.
 
 ## Repository and workflow correction
 

@@ -4,8 +4,8 @@ const source = {
   sourceName: 'L&T Metro Rail Hyderabad',
   sourceUrl: 'https://ltmetro.com/train-timings/',
   lastVerifiedAt: '2026-08-24',
-  status: 'verified-static',
-  confidence: 'high',
+  status: 'partial-modeled-topology',
+  confidence: 'medium',
   owner: 'HMG data maintainer',
   refreshPolicy: 'Review after each official network or station update and before release',
 };

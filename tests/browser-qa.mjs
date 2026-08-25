@@ -42,8 +42,8 @@ async function runViewport(width, height, port) {
       socket.addEventListener('message', listener);
       socket.send(JSON.stringify({ id: requestId, method, params }));
     });
-    const evaluate = async (expression) => (await cdp('Runtime.evaluate', { expression, returnByValue: true })).result?.value;
-    const waitFor = async (expression, timeout = 6000) => {
+    const evaluate = async (expression) => (await cdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value;
+    const waitFor = async (expression, timeout = 7000) => {
       const deadline = Date.now() + timeout;
       while (Date.now() < deadline) {
         if (await evaluate(expression)) return true;
@@ -51,37 +51,67 @@ async function runViewport(width, height, port) {
       }
       return false;
     };
+    const navigate = async (path = '') => {
+      await cdp('Page.navigate', { url: `http://127.0.0.1:4176${base}${path}` });
+      await waitFor("document.querySelector('h1') && document.querySelector('[data-nav=\"settings\"]')");
+      await waitFor(`window.innerWidth === ${width} && window.innerHeight === ${height}`);
+    };
+    const mapGeometryExpression = "(() => { const svg = document.querySelector('.network-map'); const padding = 72; const width = 1280; const height = 720; const points = [...svg.querySelectorAll('circle')].map((node) => node.getBBox()); const labels = [...svg.querySelectorAll('.map-label, .map-legend-label')].map((node) => node.getBBox()); const inside = (box) => box.x >= padding && box.y >= padding && box.x + box.width <= width - padding && box.y + box.height <= height - padding; const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; return { pointsInside: points.every(inside), labelsInside: labels.every(inside), labelsVisible: labels.every((box) => box.width > 0 && box.height > 0), labelsNoCollision: labels.every((box, index) => labels.slice(index + 1).every((other) => !overlap(box, other))), labelCount: labels.length }; })()";
+    const visibleElements = "[...document.querySelectorAll('button, select, input, a[href]')].filter((element) => !element.closest('[hidden]') && getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0)";
     await cdp('Page.enable');
     await cdp('Runtime.enable');
     await cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false, screenWidth: width, screenHeight: height });
-    await waitFor(`window.innerWidth === ${width} && window.innerHeight === ${height}`);
-    const viewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight })');
+    await navigate();
+    const viewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight, dpr: devicePixelRatio })');
     check(`${width}x${height}: exact inner viewport`, viewport?.width === width && viewport?.height === height);
-    await waitFor("document.querySelector('h1') && document.querySelector('[data-nav=\"settings\"]')");
+    const resources = await evaluate("performance.getEntriesByType('resource').map((entry) => entry.name)");
+    check(`${width}x${height}: README command loads planner CSS JS manifest`, resources.some((url) => url.endsWith('/src/app.js')) && resources.some((url) => url.endsWith('/src/styles.css')) && resources.some((url) => url.endsWith('/manifest.json')) && Boolean(await evaluate("document.querySelector('#from-station') && document.querySelector('link[rel=\"stylesheet\"]') && document.querySelector('link[rel=\"manifest\"]')")));
     const initial = await evaluate("({overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, h1: document.querySelectorAll('h1').length === 1, current: [...document.querySelectorAll('[aria-current=page]')].filter((element) => !element.closest('[hidden]')).length === 1, buttons: [...document.querySelectorAll('button')].every((b) => Boolean(b.textContent.trim() || b.getAttribute('aria-label'))), selects: [...document.querySelectorAll('select')].every((s) => Boolean(s.closest('label'))), landmarks: Boolean(document.querySelector('main') && document.querySelector('nav')), skip: Boolean(document.querySelector('.skip-link'))})");
     for (const [name, ok] of Object.entries(initial)) check(`${width}x${height}: ${name}`, name === 'overflow' ? !ok : ok);
 
-    await cdp('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
-    await waitFor('visualViewport.scale >= 2');
-    check(`${width}x${height}: native browser zoom scale`, (await evaluate('visualViewport.scale')) >= 2);
-    check(`${width}x${height}: zoomed page reflows without overflow`, await evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1'));
-    check(`${width}x${height}: zoomed controls have readable boxes`, await evaluate("[...document.querySelectorAll('button, select, input, a[href]')].filter((element) => !element.closest('[hidden]') && getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0).every((element) => { const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== 'hidden'; })"));
+    const mapEnglish = await evaluate("({ labels: [...document.querySelectorAll('.map-label')].map((node) => node.textContent), alternative: document.querySelector('.text-alternative')?.textContent || '' })");
+    const englishGeometry = await evaluate(mapGeometryExpression);
+    check(`${width}x${height}: actual SVG station points stay within padded bounds`, englishGeometry?.pointsInside);
+    check(`${width}x${height}: actual SVG English labels are visible and padded`, englishGeometry?.labelsInside && englishGeometry?.labelsVisible);
+    check(`${width}x${height}: actual SVG English labels do not collide`, englishGeometry?.labelsNoCollision);
+    check(`${width}x${height}: line codes and non-color patterns are present`, await evaluate("document.querySelectorAll('[data-line-code]').length === 3 && [...document.querySelectorAll('[data-line-code]')].every((line) => line.getAttribute('stroke-dasharray') !== null)"));
+    await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
+    await waitFor("document.documentElement.lang === 'te'");
+    const mapTelugu = await evaluate("({ labels: [...document.querySelectorAll('.map-label')].map((node) => node.textContent), alternative: document.querySelector('.text-alternative')?.textContent || '' })");
+    const teluguGeometry = await evaluate(mapGeometryExpression);
+    check(`${width}x${height}: one locale action changes visible map labels`, JSON.stringify(mapTelugu?.labels) !== JSON.stringify(mapEnglish?.labels));
+    check(`${width}x${height}: one locale action changes textual alternative`, mapTelugu?.alternative !== mapEnglish?.alternative);
+    check(`${width}x${height}: actual SVG Telugu labels are visible, padded, and collision-free`, teluguGeometry?.labelsInside && teluguGeometry?.labelsVisible && teluguGeometry?.labelsNoCollision);
+    await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
+    await waitFor("document.documentElement.lang === 'en'");
+
+    const desktopModeBeforeReflow = await evaluate("getComputedStyle(document.querySelector('.primary-nav')).display !== 'none'");
+    const reflowWidth = Math.max(180, Math.floor(width / 2));
+    const reflowHeight = Math.max(240, Math.floor(height / 2));
+    await cdp('Emulation.setDeviceMetricsOverride', { width: reflowWidth, height: reflowHeight, deviceScaleFactor: 2, mobile: false, screenWidth: width, screenHeight: height });
+    await waitFor(`window.innerWidth === ${reflowWidth} && window.innerHeight === ${reflowHeight}`);
+    const reflowViewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight, dpr: devicePixelRatio })');
+    check(`${width}x${height}: documented 200%-equivalent reflow changes effective CSS viewport`, reflowViewport?.width === reflowWidth && reflowViewport?.height === reflowHeight && reflowViewport?.dpr === 2);
+    check(`${width}x${height}: effective-CSS reflow has no horizontal document overflow`, await evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1'));
+    check(`${width}x${height}: reflowed controls are visible and operable`, await evaluate(`${visibleElements}.every((element) => { const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== 'hidden'; })`));
+    const desktopModeAfterReflow = await evaluate("getComputedStyle(document.querySelector('.primary-nav')).display !== 'none'");
+    if (width >= 980) check(`${width}x${height}: effective-CSS reflow crosses responsive breakpoint`, desktopModeBeforeReflow && !desktopModeAfterReflow);
 
     await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit();");
     await waitFor("document.querySelector('.stage-start') && document.body.textContent.includes('toward L B Nagar')");
-    check(`${width}x${height}: zoomed route stages readable`, await evaluate("[...document.querySelectorAll('.route-stage')].length >= 3 && [...document.querySelectorAll('.route-stage')].every((stage) => stage.getBoundingClientRect().width > 0 && stage.getBoundingClientRect().height > 0 && stage.textContent.trim())"));
-    await evaluate("document.querySelector('.route-stage')?.click()");
+    check(`${width}x${height}: reflowed route stages remain readable`, await evaluate("[...document.querySelectorAll('.route-stage')].length >= 3 && [...document.querySelectorAll('.route-stage')].every((stage) => stage.getBoundingClientRect().width > 0 && stage.getBoundingClientRect().height > 0 && stage.textContent.trim())"));
+    await evaluate("document.querySelector('.route-stage')?.focus(); document.querySelector('.route-stage')?.click()");
     await waitFor("document.activeElement?.classList.contains('stage-detail')");
-    check(`${width}x${height}: zoomed route stage operable`, await evaluate("document.activeElement?.classList.contains('stage-detail') && document.querySelector('.stage-detail')?.getBoundingClientRect().height > 0"));
+    check(`${width}x${height}: reflowed route stage is keyboard-operable`, await evaluate("document.activeElement?.classList.contains('stage-detail') && document.querySelector('.stage-detail')?.getBoundingClientRect().height > 0"));
     await evaluate("document.querySelector('[data-action=\"show-sources\"]')?.click()");
     await waitFor("!document.querySelector('#source-dialog').hidden");
-    check(`${width}x${height}: zoomed dialog readable`, await evaluate("!document.querySelector('#source-dialog').hidden && document.querySelector('.dialog-surface')?.getBoundingClientRect().height > 0 && document.querySelector('.dialog-close')?.getBoundingClientRect().width > 0"));
-    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
-    check(`${width}x${height}: zoomed dialog operable`, await evaluate("document.querySelector('#source-dialog').hidden"));
+    check(`${width}x${height}: reflowed dialog fits and is readable`, await evaluate("(() => { const box = document.querySelector('.dialog-surface').getBoundingClientRect(); return !document.querySelector('#source-dialog').hidden && box.width > 0 && box.height > 0 && box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight; })()"));
+    await evaluate("document.querySelector('.dialog-close')?.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
+    check(`${width}x${height}: reflowed dialog Escape operation closes it`, await evaluate("document.querySelector('#source-dialog').hidden"));
     await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='miyapur'; document.querySelector('#planner-form').requestSubmit();");
     await waitFor("document.activeElement?.id === 'planner-error'");
-    check(`${width}x${height}: zoomed error readable and focused`, await evaluate("document.activeElement?.id === 'planner-error' && document.querySelector('#planner-error')?.getBoundingClientRect().height > 0 && document.querySelector('#planner-error')?.textContent.trim()"));
-    await cdp('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
+    check(`${width}x${height}: reflowed error remains readable and focused`, await evaluate("document.activeElement?.id === 'planner-error' && document.querySelector('#planner-error')?.getBoundingClientRect().height > 0 && document.querySelector('#planner-error')?.textContent.trim()"));
+    await cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false, screenWidth: width, screenHeight: height });
     socket.close();
   } finally { browser.kill(); }
 }

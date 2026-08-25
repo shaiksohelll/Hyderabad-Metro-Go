@@ -13,7 +13,7 @@ const initialState = {
   selectedStageIndex: null,
   announcement: '',
   plannerMessage: '',
-  dataStatus: 'verified-static topology · operational data unavailable',
+  dataStatus: 'partial modeled topology · operational data unavailable',
   savedRoutes: [],
   isPlanning: false,
 };

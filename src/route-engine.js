@@ -15,7 +15,7 @@ function edgeBase(type, from, to, extra = {}) {
     type,
     from,
     to,
-    status: 'verified-static',
+    status: 'partial-modeled-topology',
     durationStatus: 'unavailable',
     accessibility: 'unknown',
     ...extra,
@@ -128,7 +128,7 @@ function directionTerminal(lineId, direction) {
 }
 
 function buildSteps(edges, originStationId) {
-  const steps = [{ type: 'start', stationId: originStationId, status: 'verified-static', text: `Start at ${stations[originStationId].name}.` }];
+  const steps = [{ type: 'start', stationId: originStationId, status: 'partial-modeled-topology', text: `Start at ${stations[originStationId].name}.` }];
   let previousLine = null;
   edges.forEach((edge, index) => {
     const from = parseNode(edge.from);

@@ -134,7 +134,13 @@ document.addEventListener('click', (event) => {
   if (action === 'toggle-menu') {
     const menu = document.querySelector('#mobile-menu');
     const button = event.target.closest('[data-action="toggle-menu"]');
-    if (menu && button) { menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); }
+    if (menu && button) {
+      const opening = menu.hidden;
+      menu.hidden = !opening;
+      button.setAttribute('aria-expanded', String(opening));
+      if (opening) menu.querySelector('[data-nav]')?.focus();
+      else button.focus();
+    }
   }
   if (action === 'save-route' && state.routeResult?.route) {
     dispatch({ type: 'SAVE_ROUTE', route: state.routeResult.route });
@@ -151,7 +157,10 @@ document.addEventListener('keydown', (event) => {
       menu.hidden = true;
       menu.setAttribute('hidden', '');
     }
-    if (button) button.setAttribute('aria-expanded', 'false');
+    if (button) {
+      button.setAttribute('aria-expanded', 'false');
+      button.focus();
+    }
   }
 });
 
