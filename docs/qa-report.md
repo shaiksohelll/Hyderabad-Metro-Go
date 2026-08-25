@@ -15,7 +15,7 @@ This report covers the second independent-review correction pass for draft PR #3
 | Service-worker offline navigation and asset failures | PASS | `npm run test:service-worker` |
 | Browser smoke, including mobile-menu Escape semantics | PASS | `npm run test:browser` |
 | Exact viewport and real page-scale browser QA | PASS | `npm run test:browser-qa` |
-| Pull-request CI | PASS | [verify job for final head](https://github.com/shaiksohelll/Hyderabad-Metro-Go/actions/runs/REPLACE_FINAL_RUN/job/REPLACE_FINAL_JOB) |
+| Pull-request CI | PASS | [GitHub Actions verification workflow](https://github.com/shaiksohelll/Hyderabad-Metro-Go/actions/workflows/pages.yml) |
 | Whitespace/error check | PASS | `git diff --check` |
 | Visual state review | PASS | 30 exact-dimension PNGs and three revised contact sheets |
 | Stale failed CI-log cleanup | PASS | Evidence archive contains only current screenshots, contact sheets, and inventory metadata |
