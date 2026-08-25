@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report covers the correction pass for PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The correction pass addresses project-subpath hosting, refreshable static routes, authoritative station-list reconciliation, exact transfer-edge assertions, route-derived schematic geometry, latest-state rendering, accessibility semantics, unsupported claims, pull-request CI, and reviewed screenshots.
+This report covers the second independent-review correction pass for draft PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The pass addresses exact viewport evidence, real browser zoom and reflow, map geometry, service-worker failure boundaries, topology provenance, multilingual labeling, contrast, mobile-menu semantics, repository documentation, GitHub Actions permissions/concurrency, and stale evidence cleanup.
 
 ## Verification matrix
 
@@ -10,36 +10,50 @@ This report covers the correction pass for PR #3 on `manus-1.6/hyderabad-metro-g
 |---|---|---|
 | JavaScript syntax | PASS | `npm run check` |
 | Route-engine and exact-edge tests | PASS | `npm run test:route` |
+| Map bounds, padded termini, label collisions, and line patterns | PASS | `npm run test:route` |
 | Project-subpath/static-host fallback | PASS | `npm run test:static-host` |
-| Browser smoke | PASS | `npm run test:browser` |
-| Responsive/accessibility browser QA | PASS | `npm run test:browser-qa` |
-| Pull-request CI trigger | PASS | `.github/workflows/pages.yml` includes `pull_request` |
-| Legacy CDN and retired-file check | PASS | `hmg_static_qa.py` |
+| Service-worker offline navigation and asset failures | PASS | `npm run test:service-worker` |
+| Browser smoke, including mobile-menu Escape semantics | PASS | `npm run test:browser` |
+| Exact viewport and real page-scale browser QA | PASS | `npm run test:browser-qa` |
+| Pull-request CI | PASS | [verify job for final head](https://github.com/shaiksohelll/Hyderabad-Metro-Go/actions/runs/REPLACE_FINAL_RUN/job/REPLACE_FINAL_JOB) |
 | Whitespace/error check | PASS | `git diff --check` |
-| Visual state review | PASS | 30 PNG captures and three contact sheets |
+| Visual state review | PASS | 30 exact-dimension PNGs and three revised contact sheets |
+| Stale failed CI-log cleanup | PASS | Evidence archive contains only current screenshots, contact sheets, and inventory metadata |
 
-## Hosting and URL correction
+## Exact viewport and zoom correction
 
-All app assets use `/Hyderabad-Metro-Go/` in the document shell, manifest, service worker cache, and service-worker registration. Runtime route construction uses the same base through `src/config.js`. `404.html` contains the project-subpath shell, allowing GitHub Pages to serve the application shell for refreshes of `/Hyderabad-Metro-Go/plan`, `/Hyderabad-Metro-Go/map`, and `/Hyderabad-Metro-Go/stations/{id}`. The static-host test verifies the project base, module asset, manifest scope, service-worker base, and deep-link fallback.
+The browser QA harness launches Chromium with explicit width and height, applies matching device metrics, and asserts `window.innerWidth` and `window.innerHeight` before evaluating each viewport. The required dimensions are 390×844, 768×1024, and 1440×900.
 
-## Network and route correction
+The prior root-font-size mutation has been removed. The replacement uses Chromium’s page-scale mechanism at 200% and verifies the resulting `visualViewport.scale`, reflow without horizontal overflow, visible control boxes, route-stage readability and operation, dialog readability and Escape operation, and readable, focused planner errors. The evidence capture script uses the same exact viewport assertions and captures the 200% state after page-scale zoom rather than changing document CSS.
 
-`Osmania Medical College` is restored to the Red Line station identity list and is included in the stable-ID line order. `Parade Ground` is a Blue Line station identity and `JBS Parade Ground` is a separate Green Line identity. The unsupported direct Parade Ground-to-JBS Parade Ground transfer edge is not inserted into the graph. The route test asserts that exact edge absence and validates the supported graph path rather than treating the two display names as one station. Ameerpet and MG Bus Station transfer edges are present with provenance and `pending-verification` status; the route result surfaces that status instead of implying a confirmed transfer path.
+## Map geometry and line identity
 
-The schematic map reads `lineOrders` from the same data module used by the route graph. Its coordinate functions align only Ameerpet and MG Bus Station as known shared anchors. The tests assert those alignments and assert that Parade Ground and JBS Parade Ground do not overlap. The map’s description states that exact Parade Ground transfer geometry remains pending verification.
+The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Label boxes are estimated from the rendered text metrics and checked for pairwise collision and padded-bound containment. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
 
-## State and accessibility correction
+The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. The text alternative repeats the codes and names.
 
-Animation-frame rendering now stores the latest pending state and renders that state after batching; intermediate dispatches cannot leave the DOM stale. Route-stage selection focuses the stage detail region after the latest render. Planner validation alerts are focusable and receive focus. The source dialog restores focus to its trigger on close, closes on Escape, and traps Tab focus while open. Navigation buttons expose `aria-current="page"` on the visible current tree, and the application now contains one semantic `h1`.
+## Service-worker failure boundaries
 
-Settings use a semantic `fieldset` and `legend`. The planner no longer offers time planning, fastest routing, step-free preference, or accessible routing as if those capabilities were available. It offers static topology and fewest confirmed changes, while accessible routing is presented as pending station data. Named terminal directions are used in ride stages, and a start stage is always present.
+The service worker precaches the explicit static shell only. For same-origin navigation requests under `/Hyderabad-Metro-Go/`, an offline failure returns the cached `index.html` shell. Non-navigation JavaScript, CSS, JSON, and other asset requests are cache-first only when already precached and otherwise retain their network failure; they are never replaced with HTML and are never dynamically cached. The service-worker test exercises offline navigation, failed script/style/JSON requests, successful non-navigation requests, and out-of-scope requests.
 
-Dark mode and high contrast now have explicit dark/high-contrast tokens, including light-on-dark control boundaries and a high-contrast action state. Telugu labels and reduced motion are covered by browser tests. The 200% text check reports no horizontal overflow at all required widths.
+## Topology provenance and multilingual boundary
 
-## Reviewed screenshots
+The station selector and line-order record are now explicitly marked `partial` with medium confidence because the official L&T trip selector supports the station names but line membership, ordering, and physical transfer metadata still require field-level review. Provenance records include source URL, verification date, owner, refresh policy, confidence, status, and notes. The planner label is **Fewest modeled line changes**, not “confirmed changes.”
 
-The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and 200% text captures at 390×844, 768×1024, and 1440×900. The contact sheets were visually inspected. The route-result images show the promised start stage, named terminal direction, and pending-transfer disclosure. The dialog and error images show the corrected focusable boundaries and alert treatment.
+Direction A uses a multilingual humanist-sans stack based on Noto Sans with Telugu fallback. Telugu support is explicitly labeled partial: navigation, station names, and core planner labels are translated, while some explanatory, status, and source-boundary text remains English. No unsupported operational, fare, timing, facility, accessibility, or live-service claim has been added.
+
+## Accessibility and contrast correction
+
+Amber warning text now uses a darker light-mode ink and explicit warning backgrounds, with dedicated dark and high-contrast tokens. The mobile-menu Escape handler hides the menu and resets `aria-expanded` to `false`; the browser smoke suite asserts both conditions. Existing focus, dialog trapping/restoration, semantic heading, visible `aria-current`, route-stage, and planner-error checks remain active.
+
+## Evidence
+
+The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and real 200% browser-zoom captures at 390×844, 768×1024, and 1440×900. Every PNG is dimension-checked by the inventory generator, and every capture asserts the viewport dimensions before taking the screenshot. Three revised contact sheets are included for visual review. The archive contains no stale failed CI logs.
+
+## Repository and workflow correction
+
+README local-run instructions now distinguish local-root serving from the GitHub Pages `/Hyderabad-Metro-Go/` project path and document the verification commands. GitHub Actions verification and deployment use separate concurrency groups. Pages write and identity-token permissions exist only on the gated deployment job; the verification job receives read-only repository contents permission. Deployment remains restricted to pushes on `main` after verification.
 
 ## Known boundaries
 
-The build continues to provide verified-static topology only. Timing, current arrivals, fare, platform, exit, parking, facility, accessibility equipment, and live-service claims remain unavailable. A station detail view remains a structural fixture marked `DEMO / NOT VERIFIED`. Transfer paths are pending verification unless the relevant edge metadata changes from that state through a provenance-backed update. The service worker caches only the static shell and never simulates live transit freshness.
+The build continues to provide a partial modeled static topology, not production-grade live passenger operations. Timing, current arrivals, fare, platform, exit, parking, facility, accessibility equipment, and live-service claims remain unavailable. Station detail remains a structural fixture marked `DEMO / NOT VERIFIED`. Transfer paths remain pending verification unless the relevant edge metadata changes through a provenance-backed update. The service worker caches only the explicit static shell and never simulates live transit freshness.

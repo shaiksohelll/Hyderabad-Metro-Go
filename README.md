@@ -10,13 +10,23 @@ The route result uses a semantic numbered stage strip for start, ride, change, a
 
 ## Run locally
 
-Open `index.html` through a static server so module scripts and the service worker work correctly. For example:
+Serve the repository root with a static server so ES modules, deep-link fallback fixtures, and the service worker can be exercised. From the repository root:
 
 ```bash
-python3 -m http.server 4173
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
-Then open `http://localhost:4173/Hyderabad-Metro-Go/`.
+For the local-root deployment mode, open `http://127.0.0.1:4173/`. The `/Hyderabad-Metro-Go/` prefix is the GitHub Pages project path; the committed static-host test simulates that prefix and the `404.html` refresh fallback:
+
+```bash
+npm run verify
+```
+
+The browser checks use a locally installed Chromium. To run them explicitly:
+
+```bash
+CHROMIUM=$(command -v chromium) npm run verify
+```
 
 ## Architecture
 
@@ -32,7 +42,7 @@ The frontend is intentionally framework-free and split by responsibility:
 | `src/a11y.js` | Focus, announcements, preference application, and locale state |
 | `src/persistence.js` | Versioned localStorage for saved routes with safe failure |
 | `src/app.js` | Application orchestration, delegated events, navigation, planning, persistence, service-worker registration |
-| `src/styles.css` | Direction A tokens, responsive layouts, dark mode, high contrast, reduced motion |
+| `src/styles.css` | Direction A multilingual humanist-sans tokens, responsive layouts, dark mode, high contrast, reduced motion |
 
 ## Testable behaviors in the vertical slice
 

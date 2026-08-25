@@ -1,26 +1,33 @@
 import { displayName, lineOrders, lines } from './data.js';
 
-const VIEWBOX = { width: 1250, height: 760 };
+export const VIEWBOX = { width: 1280, height: 720, padding: 72 };
 const redIndex = (stationId) => lineOrders.red.indexOf(stationId);
 const blueIndex = (stationId) => lineOrders.blue.indexOf(stationId);
-const redPoint = (index) => [80 + index * 45, 300];
-const bluePoint = (index) => [530, 300 + (index - blueIndex('ameerpet')) * 34];
+const redPoint = (index) => index <= 10 ? [104 + index * 48.6, 350] : [590 + (index - 10) * 37.5, 350];
+const bluePoint = (index) => [590, 90 + index * 20];
 const greenPoint = (index) => {
-  const start = [700, 70];
-  const end = [redPoint(redIndex('mg-bus-station'))[0], 300];
+  const start = [1000, 90];
+  const end = redPoint(redIndex('mg-bus-station'));
   const ratio = index / (lineOrders.green.length - 1);
   return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
 };
 
+const labelIndices = {
+  red: new Set([0, 5, 10, 18, 20, 24]),
+  blue: new Set([0, 3, 6, 8, 10, 13, 16, 19, 22]),
+  green: new Set([0, 2, 4, 6, 8]),
+};
+const patternByLine = { solid: '', dash: '16 10', dot: '3 10' };
+
 export function mapPointFor(lineId, stationId) {
-  const index = lineOrders[lineId].indexOf(stationId);
+  const index = lineOrders[lineId]?.indexOf(stationId) ?? -1;
+  if (index < 0) return null;
   if (lineId === 'red') return redPoint(index);
   if (lineId === 'blue') return bluePoint(index);
   return greenPoint(index);
 }
 
-function stationLabel(stationId) {
-  const locale = document.documentElement.lang === 'te' ? 'te' : 'en';
+function stationLabel(stationId, locale = typeof document !== 'undefined' && document.documentElement.lang === 'te' ? 'te' : 'en') {
   return displayName(stationId, locale);
 }
 
@@ -28,24 +35,55 @@ function linePath(lineId) {
   return lineOrders[lineId].map((stationId) => mapPointFor(lineId, stationId).join(',')).join(' ');
 }
 
+function labelPlacement(lineId, index, [x, y]) {
+  if (lineId === 'red') return { x, y: y + (index % 4 < 2 ? -19 : 35), anchor: 'middle' };
+  if (lineId === 'blue') return { x: x + 17, y: y + 5, anchor: 'start' };
+  return { x: x + 17, y: y + (index % 2 ? 23 : 5), anchor: 'start' };
+}
+
+function estimatedLabelWidth(text) { return Math.max(34, String(text).length * 8.4); }
+
+export function mapLabelBoxes(locale = 'en') {
+  const boxes = [];
+  Object.entries(lineOrders).forEach(([lineId, order]) => {
+    order.forEach((stationId, index) => {
+      if (!labelIndices[lineId].has(index)) return;
+      const text = stationLabel(stationId, locale);
+      const placement = labelPlacement(lineId, index, mapPointFor(lineId, stationId));
+      const width = estimatedLabelWidth(text);
+      const left = placement.anchor === 'middle' ? placement.x - width / 2 : placement.x;
+      boxes.push({ lineId, stationId, left, right: left + width, top: placement.y - 15, bottom: placement.y + 4 });
+    });
+  });
+  return boxes;
+}
+
+export function mapStationPoints() {
+  return Object.entries(lineOrders).flatMap(([lineId, order]) => order.map((stationId) => ({ lineId, stationId, point: mapPointFor(lineId, stationId) })));
+}
+
 export function renderMap({ highlightedIds = [], selectedStationId = null } = {}) {
   const highlighted = new Set(highlightedIds);
-  const parts = [`<svg class="network-map" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}" role="img" aria-labelledby="map-title map-desc">`, '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Line geometry is derived from the application network model. Red and Blue connect at Ameerpet; Red and Green connect at MG Bus Station. Parade Ground and JBS Parade Ground are separate nodes until their exact transfer edge is verified.</desc>'];
+  const parts = [`<svg class="network-map" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}" role="img" aria-labelledby="map-title map-desc">`, '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Line geometry is derived from the application network model. Line codes and dash patterns distinguish Red (R), Blue (B), and Green (G). Red and Blue align at Ameerpet; Red and Green align at MG Bus Station. Parade Ground and JBS Parade Ground are separate nodes until their exact transfer edge is verified.</desc>', '<g class="map-legend" aria-label="Line legend">'];
+  Object.entries(lines).forEach(([lineId, line], index) => {
+    const y = 34 + index * 24;
+    parts.push(`<line x1="${VIEWBOX.padding}" y1="${y}" x2="${VIEWBOX.padding + 42}" y2="${y}" stroke="${line.color}" stroke-width="7" stroke-dasharray="${patternByLine[line.pattern]}" />`);
+    parts.push(`<text x="${VIEWBOX.padding + 54}" y="${y + 5}" class="map-legend-label">${escapeXml(line.code)} · ${escapeXml(line.name)}</text>`);
+  });
+  parts.push('</g>');
   Object.entries(lineOrders).forEach(([lineId, order]) => {
-    const color = lines[lineId].color;
-    parts.push(`<polyline points="${linePath(lineId)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />`);
-    order.forEach((stationId) => {
-      const [x, y] = mapPointFor(lineId, stationId);
+    const line = lines[lineId];
+    parts.push(`<polyline data-line-code="${escapeXml(line.code)}" points="${linePath(lineId)}" fill="none" stroke="${line.color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${patternByLine[line.pattern]}" />`);
+    order.forEach((stationId, index) => {
+      const point = mapPointFor(lineId, stationId);
+      const [x, y] = point;
       const active = highlighted.has(stationId);
       const selected = selectedStationId === stationId;
       const shared = stationId === 'ameerpet' || stationId === 'mg-bus-station';
-      parts.push(`<circle cx="${x}" cy="${y}" r="${active || selected || shared ? 11 : 7}" fill="#fff" stroke="${color}" stroke-width="${active || selected || shared ? 5 : 3}" />`);
-      const index = order.indexOf(stationId);
-      if (active || selected || shared || index % 4 === 0 || stationId === 'parade-ground' || stationId === 'jbs-parade-ground') {
-        const labelX = lineId === 'blue' ? x + 16 : x;
-        const labelY = lineId === 'green' ? y + 20 : y - 15;
-        const anchor = lineId === 'blue' ? 'start' : 'middle';
-        parts.push(`<text x="${labelX}" y="${labelY}" text-anchor="${anchor}" class="map-label">${escapeXml(stationLabel(stationId))}</text>`);
+      parts.push(`<circle data-line-id="${lineId}" data-station-id="${stationId}" cx="${x}" cy="${y}" r="${active || selected || shared ? 11 : 7}" fill="#fff" stroke="${line.color}" stroke-width="${active || selected || shared ? 5 : 3}" />`);
+      if (labelIndices[lineId].has(index)) {
+        const placement = labelPlacement(lineId, index, point);
+        parts.push(`<text x="${placement.x}" y="${placement.y}" text-anchor="${placement.anchor}" class="map-label">${escapeXml(stationLabel(stationId))}</text>`);
       }
     });
   });

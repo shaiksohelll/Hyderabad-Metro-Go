@@ -1,5 +1,5 @@
 const BASE = '/Hyderabad-Metro-Go/';
-const CACHE = 'hmg-shell-v2';
+const CACHE = 'hmg-shell-v3';
 const SHELL = [
   `${BASE}`,
   `${BASE}index.html`,
@@ -27,12 +27,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const requestUrl = new URL(event.request.url);
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const requestUrl = new URL(request.url);
   if (requestUrl.origin !== self.location.origin || !requestUrl.pathname.startsWith(BASE)) return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-    return response;
-  }).catch(() => caches.match(`${BASE}index.html`))));
+  if (request.mode === 'navigate') {
+    event.respondWith(fetch(request).catch(() => caches.match(`${BASE}index.html`)));
+    return;
+  }
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });

@@ -191,8 +191,8 @@ function makeResult(edges, objective, originStationId, destinationStationId) {
     totalDuration: { value: null, status: 'unavailable', label: 'Timing unavailable' },
     walkingDuration: { value: null, status: 'unavailable', label: 'Transfer movement unavailable' },
     fare: { value: null, status: 'unavailable', label: 'Fare unavailable' },
-    confidence: 'limited — static topology only; accessibility data unavailable',
-    freshness: 'verified-static topology; operational data unavailable',
+    confidence: 'limited — partial modeled topology; accessibility data unavailable',
+    freshness: 'partial modeled topology; operational data unavailable',
     explanation: objective === 'fewest-changes'
       ? 'Ordered by fewest explicit line changes, then ride segments. Transfer movement is pending verification.'
       : 'Timing is unavailable; ordered by the best available static topology proxy. Transfer paths remain pending verification.',

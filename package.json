@@ -6,9 +6,10 @@
   "scripts": {
     "test:route": "node tests/route-engine-smoke.mjs",
     "test:static-host": "node tests/static-host-smoke.mjs",
+    "test:service-worker": "node tests/service-worker-smoke.mjs",
     "test:browser": "node tests/browser-smoke.mjs",
     "test:browser-qa": "node tests/browser-qa.mjs",
     "check": "for file in src/*.js; do node --check \"$file\"; done",
-    "verify": "npm run check && npm run test:route && npm run test:static-host && npm run test:browser && npm run test:browser-qa"
+    "verify": "npm run check && npm run test:route && npm run test:static-host && npm run test:service-worker && npm run test:browser && npm run test:browser-qa"
   }
 }

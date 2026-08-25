@@ -67,6 +67,11 @@ try {
   await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
   check('Escape closes source dialog', (await evaluate("document.querySelector('#source-dialog').hidden")) === true);
   check('dialog restores trigger focus', (await evaluate("document.activeElement?.getAttribute('data-action') === 'show-sources'")) === true);
+  await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.click()");
+  check('mobile menu opens with aria-expanded true', (await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'true'")) === true);
+  await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
+  await waitFor("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false'");
+  check('Escape closes mobile menu and resets aria-expanded', (await evaluate("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false'")) === true);
   await evaluate("document.querySelector('[data-nav=\\\"settings\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
   await evaluate("document.querySelector('[data-action=\\\"toggle-locale\\\"]')?.click(); if (document.documentElement.dataset.theme !== 'dark') document.querySelector('[data-action=\\\"toggle-theme\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
   check('rapid dispatch renders latest locale', (await evaluate("document.documentElement.lang === 'te'")) === true);

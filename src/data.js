@@ -6,12 +6,16 @@ const source = {
   lastVerifiedAt: '2026-08-24',
   status: 'verified-static',
   confidence: 'high',
+  owner: 'HMG data maintainer',
+  refreshPolicy: 'Review after each official network or station update and before release',
 };
 
 const networkSource = {
   ...source,
   sourceUrl: 'https://ltmetro.com/find-trip-details/',
-  notes: 'Official L&T trip selector used for the static station list; line membership and physical transfer metadata still require field-level review.',
+  status: 'partial',
+  confidence: 'medium',
+  notes: 'Official L&T trip selector supports the station names; line membership, ordering, and physical transfer metadata still require field-level review.',
 };
 
 const stationSource = {

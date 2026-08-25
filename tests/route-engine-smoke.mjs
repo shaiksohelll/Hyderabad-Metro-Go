@@ -1,6 +1,6 @@
 import { buildGraph, planJourney } from '../src/route-engine.js';
-import { stations } from '../src/data.js';
-import { mapPointFor } from '../src/map-view.js';
+import { lineOrders, stations } from '../src/data.js';
+import { mapLabelBoxes, mapPointFor, mapStationPoints, renderMap, VIEWBOX } from '../src/map-view.js';
 
 const checks = [];
 function check(name, condition) {
@@ -31,6 +31,15 @@ check('Parade Ground pair uses only supported graph edges', distinct.status === 
 check('Ameerpet interchange anchors align', mapPointFor('red', 'ameerpet').join(',') === mapPointFor('blue', 'ameerpet').join(','));
 check('MG Bus Station interchange anchors align', mapPointFor('red', 'mg-bus-station').join(',') === mapPointFor('green', 'mg-bus-station').join(','));
 check('Parade Ground nodes do not overlap', mapPointFor('blue', 'parade-ground').join(',') !== mapPointFor('green', 'jbs-parade-ground').join(','));
+const bounds = mapStationPoints().every(({ point: [x, y] }) => x >= VIEWBOX.padding && x <= VIEWBOX.width - VIEWBOX.padding && y >= VIEWBOX.padding && y <= VIEWBOX.height - VIEWBOX.padding);
+check('all stations remain inside padded map bounds', bounds);
+check('line termini remain inside padded map bounds', ['red', 'blue', 'green'].flatMap((lineId) => [lineOrders[lineId][0], lineOrders[lineId].at(-1)].map((stationId) => mapPointFor(lineId, stationId))).every(([x, y]) => x >= VIEWBOX.padding && x <= VIEWBOX.width - VIEWBOX.padding && y >= VIEWBOX.padding && y <= VIEWBOX.height - VIEWBOX.padding));
+const labelBoxes = mapLabelBoxes('en');
+const overlaps = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+check('map labels do not overlap', labelBoxes.every((box, index) => labelBoxes.slice(index + 1).every((other) => !overlaps(box, other))));
+check('map labels remain inside padded bounds', labelBoxes.every(({ left, right, top, bottom }) => left >= VIEWBOX.padding && right <= VIEWBOX.width - VIEWBOX.padding && top >= VIEWBOX.padding && bottom <= VIEWBOX.height - VIEWBOX.padding));
+const mapMarkup = renderMap();
+check('map exposes line codes and non-color patterns', mapMarkup.includes('R · Red Line') && mapMarkup.includes('B · Blue Line') && mapMarkup.includes('G · Green Line') && mapMarkup.includes('16 10') && mapMarkup.includes('3 10'));
 const accessible = planJourney({ originStationId: 'miyapur', destinationStationId: 'raidurg', objective: 'accessible', accessibility: { stepFree: true } });
 check('unsupported accessible objective is downgraded honestly', accessible.route.confidence.includes('accessibility data unavailable') && accessible.route.explanation.includes('static topology'));
 
