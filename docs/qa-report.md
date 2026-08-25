@@ -2,15 +2,16 @@
 
 ## Scope
 
-This report covers the final focused correction pass for draft PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The pass addresses exact viewport evidence, effective-CSS-viewport reflow, map geometry, service-worker failure boundaries, topology provenance, multilingual labeling, contrast, mobile-menu semantics, repository documentation, GitHub Actions permissions/concurrency, and stale evidence cleanup.
+This report covers the official-data integration pass for draft PR #3 on `manus-1.6/hyderabad-metro-go-rebuild`. The branch remains draft-only and `main` is not modified. The pass integrates the official L&T Metro Rail network map topology (station identity, line membership, order, station numbering, three interchange relationships) and official fare zones (₹11–₹69, effective 24 May 2025). It adds the Parade Ground \u2194 JBS Parade Ground confirmed transfer, schematic transfer connector, fare-zone data model and UI, and comprehensive test coverage.
 
 ## Verification matrix
 
 | Check | Result | Evidence |
 |---|---|---|
 | JavaScript syntax | PASS | `npm run check` |
-| Route-engine and exact-edge tests | PASS | `npm run test:route` |
-| Exhaustive all-station-pair routing | PASS | `npm run test:exhaustive` — 3,192 ordered pairs |
+| Route-engine, interchange, and station-numbering tests | PASS | `npm run test:route` — 48 assertions |
+| Fare-zone boundary and source metadata tests | PASS | `npm run test:fare` — 30 assertions |
+| Exhaustive all-station-pair routing | PASS | `npm run test:exhaustive` — 3,192 ordered pairs, 0 unreachable |
 | Map bounds, padded termini, actual SVG label collisions, and line patterns | PASS | `npm run test:route` and `npm run test:browser-qa` |
 | Project-subpath/static-host fallback | PASS | `npm run test:static-host` |
 | Service-worker offline navigation and asset failures | PASS | `npm run test:service-worker` and `npm run test:service-worker-browser` |
@@ -29,7 +30,7 @@ The prior root-font-size and pinch/page-magnification checks have been removed. 
 
 ## Map geometry and line identity
 
-The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values separately for station labels (`.map-label`) and legend labels (`.map-legend-label`). English assertions verify station-label count is greater than zero, and that station labels are visible, padded, and collision-safe. Telugu assertions verify station-label count is exactly zero by design, that the three legend labels remain visible and geometrically valid, that the textual alternative changes immediately, and that every one of the 57 unique modeled stations has its Telugu display name represented in the textual alternative. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
+The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values separately for station labels (`.map-label`) and legend labels (`.map-legend-label`). English assertions verify station-label count is greater than zero, and that station labels are visible, padded, and collision-safe. Telugu assertions verify station-label count is exactly zero by design, that the three legend labels remain visible and geometrically valid, that the textual alternative changes immediately, and that every one of the 57 unique modeled stations has its Telugu display name represented in the textual alternative. Ameerpet and MG Bus Station remain aligned shared anchors. Parade Ground (Blue) and JBS Parade Ground (Green) are distinct non-overlapping nodes linked by an explicit transfer connector (dashed line). The map textual alternative now describes all three interchange relationships.
 
 The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. English uses a sparse terminal/interchange label set. Telugu station labels are intentionally withheld in the SVG until a complete Telugu font/label review is available; the legend, line patterns, and complete localized textual alternative remain available.
 
@@ -37,11 +38,11 @@ The map viewbox now includes a visible legend with line codes and names. Red use
 
 The service worker precaches the explicit static shell only. For same-origin navigation requests under `/Hyderabad-Metro-Go/`, an offline failure returns the cached `index.html` shell. Non-navigation JavaScript, CSS, JSON, and other asset requests are cache-first only when already precached and otherwise retain their network failure; they are never replaced with HTML and are never dynamically cached. The service-worker test exercises offline navigation, failed script/style/JSON requests, successful non-navigation requests, and out-of-scope requests.
 
-## Topology provenance and multilingual boundary
+The station model and line-order records are now sourced from the official L&T Metro Rail (Hyderabad) network map with high confidence for station identity, line membership, order, station numbering, termini, and interchange topology. All three interchange relationships are confirmed: Ameerpet (Red/Blue), MG Bus Station (Red/Green), and Parade Ground (Blue) ↔ JBS Parade Ground (Green). Provenance records carry source URL, source type, verification date, owner, refresh policy, confidence, status, and notes. The planner label is **Fewest modeled line changes**, not "confirmed changes."
 
-The station selector and line-order record are now explicitly marked `partial` with medium confidence because the official L&T trip selector supports the station names but line membership, ordering, and physical transfer metadata still require field-level review. Provenance records include source URL, verification date, owner, refresh policy, confidence, status, and notes. The planner label is **Fewest modeled line changes**, not “confirmed changes.”
+Official fare zones (₹11–₹69, effective 24 May 2025) are sourced from L&TMRHL/CCD/PR/189/23-05-2025. The fare-zone model is exposed in the Source & limits dialog with the official zone table and effective date. Exact route fare remains unavailable because verified station-to-station distance data is not yet sourced.
 
-Direction A uses a multilingual humanist-sans stack based on Noto Sans with Telugu fallback. Telugu support is explicitly labeled partial: navigation, station names, and core planner labels are translated, while some explanatory, status, and source-boundary text remains English. No unsupported operational, fare, timing, facility, accessibility, or live-service claim has been added.
+Direction A uses a multilingual humanist-sans stack based on Noto Sans with Telugu fallback. Telugu support is explicitly labeled partial: navigation, station names, and core planner labels are translated, while some explanatory, status, and source-boundary text remains English. No unsupported operational, timing, facility, accessibility, or live-service claim has been added.
 
 ## Accessibility and contrast correction
 
@@ -57,4 +58,4 @@ README local-run instructions now distinguish local-root serving from the GitHub
 
 ## Known boundaries
 
-The build continues to provide a partial modeled static topology, not production-grade live passenger operations. Timing, current arrivals, fare, platform, exit, parking, facility, accessibility equipment, and live-service claims remain unavailable. Station detail remains a structural fixture marked `DEMO / NOT VERIFIED`. Transfer paths remain pending verification unless the relevant edge metadata changes through a provenance-backed update. The service worker caches only the explicit static shell and never simulates live transit freshness.
+The build provides official static topology sourced from the L&T Metro Rail network map, not production-grade live passenger operations. Timing, current arrivals, exact route fare, platform, exit, parking, facility, accessibility equipment, and live-service claims remain unavailable. Station detail remains a structural fixture marked `DEMO / NOT VERIFIED`. Transfer walking paths and durations are unavailable. Official fare zones are displayed but exact journey fare cannot be calculated without verified station-to-station distance data. The service worker caches only the explicit static shell and never simulates live transit freshness.

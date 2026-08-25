@@ -15,7 +15,7 @@ function edgeBase(type, from, to, extra = {}) {
     type,
     from,
     to,
-    status: 'partial-modeled-topology',
+    status: 'official-static-topology',
     durationStatus: 'unavailable',
     accessibility: 'unknown',
     ...extra,
@@ -40,6 +40,9 @@ export function buildGraph() {
     const right = nodeId(connection.toLine, connection.toStation);
     const transfer = (from, to) => edgeBase('transfer', from, to, {
       stationId: connection.transferStationId,
+      crossStation: connection.crossStation || false,
+      fromStationId: connection.fromStationId,
+      toStationId: connection.toStationId,
       cost: 1,
       transferStatus: connection.provenance.status,
       provenance: connection.provenance,
@@ -128,18 +131,26 @@ function directionTerminal(lineId, direction) {
 }
 
 function buildSteps(edges, originStationId) {
-  const steps = [{ type: 'start', stationId: originStationId, status: 'partial-modeled-topology', text: `Start at ${stations[originStationId].name}.` }];
+  const steps = [{ type: 'start', stationId: originStationId, status: 'official-static-topology', text: `Start at ${stations[originStationId].name}.` }];
   let previousLine = null;
   edges.forEach((edge, index) => {
     const from = parseNode(edge.from);
     const to = parseNode(edge.to);
     if (edge.type === 'transfer') {
-      steps.push({ type: 'change', stationId: from.stationId, fromLine: lineName(from.lineId), toLine: lineName(to.lineId), edgeId: edge.id, status: edge.transferStatus || 'pending-verification', text: `Change from ${lineName(from.lineId)} to ${lineName(to.lineId)} at ${stations[from.stationId].name}.`, note: 'Transfer path pending verification.' });
+      const isCrossStation = edge.crossStation;
+      const transferText = isCrossStation
+        ? `Transfer between ${stations[from.stationId].name} and ${stations[to.stationId].name}.`
+        : `Change from ${lineName(from.lineId)} to ${lineName(to.lineId)} at ${stations[from.stationId].name}.`;
+      const transferNote = isCrossStation
+        ? 'Walking path and transfer duration are unavailable.'
+        : 'Transfer path and duration are unavailable.';
+      steps.push({ type: 'change', stationId: from.stationId, toStationId: isCrossStation ? to.stationId : undefined, fromLine: lineName(from.lineId), toLine: lineName(to.lineId), edgeId: edge.id, status: edge.transferStatus || 'official-static-topology', crossStation: isCrossStation || false, text: transferText, note: transferNote });
       previousLine = null;
       return;
     }
     if (previousLine !== from.lineId) {
       steps.push({ type: 'ride', stationId: from.stationId, lineId: from.lineId, lineName: lineName(from.lineId), direction: edge.direction, terminal: directionTerminal(from.lineId, edge.direction), edgeId: edge.id, status: edge.status, text: `Take ${lineName(from.lineId)} toward ${directionTerminal(from.lineId, edge.direction)}.` });
+
       previousLine = from.lineId;
     }
     if (index === edges.length - 1) steps.push({ type: 'arrive', stationId: to.stationId, lineId: to.lineId, status: edge.status, text: `Arrive at ${stations[to.stationId].name}.` });
@@ -187,12 +198,13 @@ function makeResult(edges, objective, originStationId, destinationStationId) {
     edges,
     transfers,
     pendingTransferVerification: edges.filter((edge) => edge.type === 'transfer' && edge.transferStatus === 'pending-verification').length,
+    crossStationTransfers: edges.filter((edge) => edge.type === 'transfer' && edge.crossStation).length,
     rideSegments: rideEdges,
     totalDuration: { value: null, status: 'unavailable', label: 'Timing unavailable' },
     walkingDuration: { value: null, status: 'unavailable', label: 'Transfer movement unavailable' },
-    fare: { value: null, status: 'unavailable', label: 'Fare unavailable' },
-    confidence: 'limited — partial modeled topology; accessibility data unavailable',
-    freshness: 'partial modeled topology; operational data unavailable',
+    fare: { value: null, status: 'unavailable', label: 'Exact fare unavailable' },
+    confidence: 'official static topology; accessibility data and operational timing unavailable',
+    freshness: 'official static topology; operational data unavailable',
     explanation: objective === 'fewest-changes'
       ? 'Ordered by fewest explicit line changes, then ride segments. Transfer movement is pending verification.'
       : 'Timing is unavailable; ordered by the best available static topology proxy. Transfer paths remain pending verification.',

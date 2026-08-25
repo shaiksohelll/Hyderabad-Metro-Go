@@ -54,11 +54,11 @@ try {
   await cdp('Runtime.enable');
   await waitFor("document.querySelector('#from-station') && document.querySelector('#to-station') && document.querySelector('#planner-form')");
   await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit();");
-  await waitFor("document.querySelector('.stage-start') && document.body.textContent.includes('toward L B Nagar') && document.body.textContent.includes('Transfer verification pending')");
+  await waitFor("document.querySelector('.stage-start') && document.body.textContent.includes('toward L B Nagar') && document.querySelector('.stage-change')");
   check('route result renders', Boolean(await evaluate("document.querySelector('#result-heading')")));
   check('route has start stage', (await evaluate("document.querySelector('.stage-start')?.textContent.includes('Start at')")) === true);
   check('route uses named terminal', (await evaluate("document.body.textContent.includes('toward L B Nagar')")) === true);
-  check('route has pending transfer notice', (await evaluate("document.body.textContent.includes('Transfer verification pending')")) === true);
+  check('route has transfer stage', (await evaluate("document.querySelector('.stage-change') !== null")) === true);
   await evaluate("document.querySelector('.route-stage')?.click()");
   await waitFor("document.activeElement?.classList.contains('stage-detail')");
   check('route-stage detail receives focus', (await evaluate("document.activeElement?.classList.contains('stage-detail')")) === true);

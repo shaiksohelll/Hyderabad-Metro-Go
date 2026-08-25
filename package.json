@@ -11,7 +11,8 @@
     "test:service-worker-browser": "node tests/service-worker-browser-smoke.mjs",
     "test:browser": "node tests/browser-smoke.mjs",
     "test:browser-qa": "node tests/browser-qa.mjs",
+    "test:fare": "node tests/fare-policy-smoke.mjs",
     "check": "node tests/syntax-smoke.mjs",
-    "verify": "npm run check && npm run test:route && npm run test:exhaustive && npm run test:static-host && npm run test:service-worker && npm run test:service-worker-browser && npm run test:browser && npm run test:browser-qa"
+    "verify": "npm run check && npm run test:route && npm run test:fare && npm run test:exhaustive && npm run test:static-host && npm run test:service-worker && npm run test:service-worker-browser && npm run test:browser && npm run test:browser-qa"
   }
 }

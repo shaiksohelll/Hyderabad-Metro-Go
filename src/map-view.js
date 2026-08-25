@@ -1,4 +1,4 @@
-import { displayName, lineOrders, lines } from './data.js';
+import { displayName, lineOrders, lines, transferConnections } from './data.js';
 
 export const VIEWBOX = { width: 1280, height: 720, padding: 72 };
 const redIndex = (stationId) => lineOrders.red.indexOf(stationId);
@@ -47,7 +47,7 @@ export function mapStationPoints() {
 
 export function renderMap({ highlightedIds = [], selectedStationId = null, locale = 'en' } = {}) {
   const highlighted = new Set(highlightedIds);
-  const parts = [`<svg class="network-map" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}" role="img" aria-labelledby="map-title map-desc">`, '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Line geometry is derived from the application network model. Line codes and dash patterns distinguish Red (R), Blue (B), and Green (G). Red and Blue align at Ameerpet; Red and Green align at MG Bus Station. Parade Ground and JBS Parade Ground are separate nodes until their exact transfer edge is verified.</desc>', '<g class="map-legend" aria-label="Line legend">'];
+  const parts = [`<svg class="network-map" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}" role="img" aria-labelledby="map-title map-desc">`, '<title id="map-title">Hyderabad Metro schematic network map</title>', '<desc id="map-desc">Line geometry is derived from the official network map. Line codes and dash patterns distinguish Red (R), Blue (B), and Green (G). Ameerpet: Red/Blue interchange. MG Bus Station: Red/Green interchange. Parade Ground (Blue) and JBS Parade Ground (Green) form a connected interchange complex; they are separate stations linked by a transfer connector.</desc>', '<g class="map-legend" aria-label="Line legend">'];
   Object.entries(lines).forEach(([lineId, line], index) => {
     const legendX = VIEWBOX.padding;
     const y = 90 + index * 32;
@@ -64,7 +64,7 @@ export function renderMap({ highlightedIds = [], selectedStationId = null, local
       const [x, y] = point;
       const active = highlighted.has(stationId);
       const selected = selectedStationId === stationId;
-      const shared = stationId === 'ameerpet' || stationId === 'mg-bus-station';
+      const shared = stationId === 'ameerpet' || stationId === 'mg-bus-station' || stationId === 'parade-ground' || stationId === 'jbs-parade-ground';
       parts.push(`<circle data-line-id="${lineId}" data-station-id="${stationId}" cx="${x}" cy="${y}" r="${active || selected || shared ? 11 : 7}" fill="#fff" stroke="${line.color}" stroke-width="${active || selected || shared ? 5 : 3}" />`);
       if (labelsForLocale[lineId].has(index)) {
         const placement = labelPlacement(lineId, index, point);
@@ -72,6 +72,11 @@ export function renderMap({ highlightedIds = [], selectedStationId = null, local
       }
     });
   });
+  const pgPoint = mapPointFor('blue', 'parade-ground');
+  const jbsPoint = mapPointFor('green', 'jbs-parade-ground');
+  if (pgPoint && jbsPoint) {
+    parts.push(`<line class="transfer-connector" x1="${pgPoint[0]}" y1="${pgPoint[1]}" x2="${jbsPoint[0]}" y2="${jbsPoint[1]}" stroke="#666" stroke-width="3" stroke-dasharray="6 4" opacity="0.7" />`);    parts.push(`<text x="${(pgPoint[0] + jbsPoint[0]) / 2 + 12}" y="${(pgPoint[1] + jbsPoint[1]) / 2}" class="transfer-label" font-size="9" fill="#666">⇆</text>`);
+  }
   parts.push('</svg>');
   return parts.join('');
 }
@@ -81,7 +86,9 @@ function escapeXml(value = '') {
 }
 
 export function textMapAlternative(locale = 'en') {
-  return Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${escapeXml(lines[lineId].name)} (${lines[lineId].code})</strong>: ${order.map((stationId) => escapeXml(stationLabel(stationId, locale))).join(' → ')}</p>`).join('');
+  const lineDescriptions = Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${escapeXml(lines[lineId].name)} (${lines[lineId].code})</strong>: ${order.map((stationId) => escapeXml(stationLabel(stationId, locale))).join(' \u2192 ')}</p>`).join('');
+  const interchangeDescriptions = '<p><strong>Interchanges</strong>: Ameerpet (Red \u2194 Blue); MG Bus Station (Red \u2194 Green); Parade Ground (Blue) \u2194 JBS Parade Ground (Green) \u2014 connected interchange complex, walking path and duration unavailable.</p>';
+  return lineDescriptions + interchangeDescriptions;
 }
 
 export function routeStationIds(route) {
