@@ -2,8 +2,10 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
-const root = new URL('../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../', import.meta.url));
 const base = '/Hyderabad-Metro-Go/';
 const server = createServer(async (request, response) => {
   const requestPath = request.url?.split('?')[0] || '/';
@@ -24,7 +26,7 @@ const check = (name, condition) => checks.push({ name, ok: Boolean(condition) })
 
 async function runViewport(width, height, port) {
   const chromium = process.env.CHROMIUM || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', `--window-size=${width},${height}`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=/tmp/hmg-browser-qa-${port}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', `--window-size=${width},${height}`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=${join(tmpdir(), `hmg-browser-qa-${port}-${process.pid}`)}`, `http://127.0.0.1:4176${base}`], { stdio: 'ignore' });
   try {
     let tabs = [];
     for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -56,7 +58,7 @@ async function runViewport(width, height, port) {
       await waitFor("document.querySelector('h1') && document.querySelector('[data-nav=\"settings\"]')");
       await waitFor(`window.innerWidth === ${width} && window.innerHeight === ${height}`);
     };
-    const mapGeometryExpression = "(() => { const svg = document.querySelector('.network-map'); const padding = 72; const width = 1280; const height = 720; const points = [...svg.querySelectorAll('circle')].map((node) => node.getBBox()); const labels = [...svg.querySelectorAll('.map-label, .map-legend-label')].map((node) => node.getBBox()); const inside = (box) => box.x >= padding && box.y >= padding && box.x + box.width <= width - padding && box.y + box.height <= height - padding; const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; return { pointsInside: points.every(inside), labelsInside: labels.every(inside), labelsVisible: labels.every((box) => box.width > 0 && box.height > 0), labelsNoCollision: labels.every((box, index) => labels.slice(index + 1).every((other) => !overlap(box, other))), labelCount: labels.length }; })()";
+    const mapGeometryExpression = "(() => { const svg = document.querySelector('.network-map'); const padding = 72; const width = 1280; const height = 720; const points = [...svg.querySelectorAll('circle')].map((node) => node.getBBox()); const stationLabels = [...svg.querySelectorAll('.map-label')].map((node) => node.getBBox()); const legendLabels = [...svg.querySelectorAll('.map-legend-label')].map((node) => node.getBBox()); const inside = (box) => box.x >= padding && box.y >= padding && box.x + box.width <= width - padding && box.y + box.height <= height - padding; const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; const allLabels = stationLabels.concat(legendLabels); return { pointsInside: points.every(inside), stationLabelCount: stationLabels.length, stationLabelsInside: stationLabels.every(inside), stationLabelsVisible: stationLabels.every((box) => box.width > 0 && box.height > 0), stationLabelsNoCollision: stationLabels.every((box, index) => stationLabels.slice(index + 1).every((other) => !overlap(box, other))), legendLabelCount: legendLabels.length, legendLabelsInside: legendLabels.every(inside), legendLabelsVisible: legendLabels.every((box) => box.width > 0 && box.height > 0), legendLabelsNoCollision: legendLabels.every((box, index) => legendLabels.slice(index + 1).every((other) => !overlap(box, other))) }; })()";
     const visibleElements = "[...document.querySelectorAll('button, select, input, a[href]')].filter((element) => !element.closest('[hidden]') && getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0)";
     await cdp('Page.enable');
     await cdp('Runtime.enable');
@@ -69,19 +71,21 @@ async function runViewport(width, height, port) {
     const initial = await evaluate("({overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, h1: document.querySelectorAll('h1').length === 1, current: [...document.querySelectorAll('[aria-current=page]')].filter((element) => !element.closest('[hidden]')).length === 1, buttons: [...document.querySelectorAll('button')].every((b) => Boolean(b.textContent.trim() || b.getAttribute('aria-label'))), selects: [...document.querySelectorAll('select')].every((s) => Boolean(s.closest('label'))), landmarks: Boolean(document.querySelector('main') && document.querySelector('nav')), skip: Boolean(document.querySelector('.skip-link'))})");
     for (const [name, ok] of Object.entries(initial)) check(`${width}x${height}: ${name}`, name === 'overflow' ? !ok : ok);
 
-    const mapEnglish = await evaluate("({ labels: [...document.querySelectorAll('.map-label')].map((node) => node.textContent), alternative: document.querySelector('.text-alternative')?.textContent || '' })");
     const englishGeometry = await evaluate(mapGeometryExpression);
     check(`${width}x${height}: actual SVG station points stay within padded bounds`, englishGeometry?.pointsInside);
-    check(`${width}x${height}: actual SVG English labels are visible and padded`, englishGeometry?.labelsInside && englishGeometry?.labelsVisible);
-    check(`${width}x${height}: actual SVG English labels do not collide`, englishGeometry?.labelsNoCollision);
+    check(`${width}x${height}: English station-label count is greater than zero`, englishGeometry?.stationLabelCount > 0);
+    check(`${width}x${height}: English station labels are visible, padded, and collision-safe`, englishGeometry?.stationLabelsInside && englishGeometry?.stationLabelsVisible && englishGeometry?.stationLabelsNoCollision);
+    check(`${width}x${height}: legend labels are visible, padded, and collision-safe`, englishGeometry?.legendLabelCount === 3 && englishGeometry?.legendLabelsInside && englishGeometry?.legendLabelsVisible && englishGeometry?.legendLabelsNoCollision);
     check(`${width}x${height}: line codes and non-color patterns are present`, await evaluate("document.querySelectorAll('[data-line-code]').length === 3 && [...document.querySelectorAll('[data-line-code]')].every((line) => line.getAttribute('stroke-dasharray') !== null)"));
+    const englishAlternative = await evaluate("document.querySelector('.text-alternative')?.textContent || ''");
     await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
     await waitFor("document.documentElement.lang === 'te'");
-    const mapTelugu = await evaluate("({ labels: [...document.querySelectorAll('.map-label')].map((node) => node.textContent), alternative: document.querySelector('.text-alternative')?.textContent || '' })");
     const teluguGeometry = await evaluate(mapGeometryExpression);
-    check(`${width}x${height}: one locale action changes visible map labels`, JSON.stringify(mapTelugu?.labels) !== JSON.stringify(mapEnglish?.labels));
-    check(`${width}x${height}: one locale action changes textual alternative`, mapTelugu?.alternative !== mapEnglish?.alternative);
-    check(`${width}x${height}: actual SVG Telugu labels are visible, padded, and collision-free`, teluguGeometry?.labelsInside && teluguGeometry?.labelsVisible && teluguGeometry?.labelsNoCollision);
+    check(`${width}x${height}: Telugu SVG station-label count is exactly zero by design`, teluguGeometry?.stationLabelCount === 0);
+    check(`${width}x${height}: three legend labels remain visible and geometrically valid in Telugu`, teluguGeometry?.legendLabelCount === 3 && teluguGeometry?.legendLabelsInside && teluguGeometry?.legendLabelsVisible && teluguGeometry?.legendLabelsNoCollision);
+    const teluguAlternative = await evaluate("document.querySelector('.text-alternative')?.textContent || ''");
+    check(`${width}x${height}: Telugu textual alternative differs from English`, teluguAlternative !== englishAlternative && teluguAlternative.length > 0);
+    check(`${width}x${height}: Telugu textual alternative contains all 57 modeled stations`, await evaluate("(() => { const alt = document.querySelector('.text-alternative')?.textContent || ''; const allIds = Object.keys(window.__hmgStations || {}); if (!allIds.length) { const selects = document.querySelectorAll('#from-station option[value]'); const ids = [...selects].map(o => o.value).filter(Boolean); return ids.length === 57 && ids.every(id => { const opt = document.querySelector(`#from-station option[value='${id}']`); return opt && alt.includes(opt.textContent); }); } return false; })()"));
     await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
     await waitFor("document.documentElement.lang === 'en'");
 

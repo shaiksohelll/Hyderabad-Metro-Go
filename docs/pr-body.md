@@ -26,9 +26,9 @@ Direction A now uses a multilingual humanist-sans stack based on Noto Sans with 
 
 ## Tests and evidence
 
-`npm run verify` runs syntax, route/map, static-host, service-worker offline, browser smoke, responsive, semantic, locale, dark-mode, high-contrast, reduced-motion, exact viewport, page-scale zoom, and 200% reflow checks. Pull-request CI provisions Chromium and runs the same verification command on `pull_request` events. Verification and deployment have separate concurrency groups; Pages write and identity-token permissions are scoped only to the gated deployment job, while deployment remains restricted to pushes on `main`.
+`npm run verify` runs syntax, route/map, static-host, service-worker offline, browser smoke, responsive, semantic, locale, dark-mode, high-contrast, reduced-motion, exact viewport, and effective-CSS-viewport 200%-equivalent reflow simulation checks. This is not native browser zoom; the test uses Chromium device metrics with a 2× device scale factor and half-width/half-height effective CSS viewport to exercise 200%-equivalent responsive reflow. Pull-request CI provisions Chromium and runs the same verification command on `pull_request` events. Verification and deployment have separate concurrency groups; Pages write and identity-token permissions are scoped only to the gated deployment job, while deployment remains restricted to pushes on `main`.
 
-The reviewed evidence package contains 30 exact-dimension PNG captures for planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and real 200% browser zoom at all three required viewports, plus revised contact sheets and an exact-dimension inventory. Stale failed CI logs are excluded.
+The reviewed evidence package contains 30 exact-dimension PNG captures for planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and effective-CSS-viewport 200%-equivalent reflow simulation (not native browser zoom) at all three required viewports, plus revised contact sheets and an exact-dimension inventory. Stale failed CI logs are excluded.
 
 ## Merge constraint
 

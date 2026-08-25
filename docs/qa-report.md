@@ -29,7 +29,7 @@ The prior root-font-size and pinch/page-magnification checks have been removed. 
 
 ## Map geometry and line identity
 
-The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values for station circles and English/Telugu station and legend labels, then checks padded-bound containment, visibility, and pairwise collision. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
+The schematic map is generated from the shared `lineOrders` route model. All station points and termini are asserted within padded viewbox bounds. Browser QA measures the actual rendered SVG `getBBox()` values separately for station labels (`.map-label`) and legend labels (`.map-legend-label`). English assertions verify station-label count is greater than zero, and that station labels are visible, padded, and collision-safe. Telugu assertions verify station-label count is exactly zero by design, that the three legend labels remain visible and geometrically valid, that the textual alternative changes immediately, and that every one of the 57 unique modeled stations has its Telugu display name represented in the textual alternative. Ameerpet and MG Bus Station remain aligned shared anchors, while Parade Ground and JBS Parade Ground remain distinct non-overlapping nodes.
 
 The map viewbox now includes a visible legend with line codes and names. Red uses a solid stroke, Blue uses a dash pattern, and Green uses a dot pattern so line identity does not depend on color alone. English uses a sparse terminal/interchange label set. Telugu station labels are intentionally withheld in the SVG until a complete Telugu font/label review is available; the legend, line patterns, and complete localized textual alternative remain available.
 
@@ -49,7 +49,7 @@ Amber warning text now uses a darker light-mode ink and explicit warning backgro
 
 ## Evidence
 
-The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and effective-CSS-viewport 200%-equivalent reflow captures at 390×844, 768×1024, and 1440×900. Every PNG is dimension-checked by the inventory generator, and every capture asserts the viewport dimensions before taking the screenshot. Three revised contact sheets are included for visual review. The archive contains no stale failed CI logs.
+The evidence set contains planner, route result, station detail, source dialog, validation error, dark journey, high contrast, Telugu, reduced motion, and effective-CSS-viewport 200%-equivalent reflow simulation (not native browser zoom) captures at 390×844, 768×1024, and 1440×900. Every PNG is dimension-checked by the inventory generator, and every capture asserts the viewport dimensions before taking the screenshot. Three revised contact sheets are included for visual review. The archive contains no stale failed CI logs.
 
 ## Repository and workflow correction
 

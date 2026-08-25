@@ -2,8 +2,10 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
-const root = new URL('../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../', import.meta.url));
 const base = '/Hyderabad-Metro-Go/';
 const server = createServer(async (request, response) => {
   const requestPath = request.url?.split('?')[0] || '/';
@@ -21,7 +23,7 @@ await new Promise((resolve) => server.listen(4178, '127.0.0.1', resolve));
 
 const chromium = process.env.CHROMIUM || 'chromium';
 const port = 9268;
-const profile = `/tmp/hmg-service-worker-browser-${process.pid}`;
+const profile = join(tmpdir(), `hmg-service-worker-browser-${process.pid}`);
 await rm(profile, { recursive: true, force: true });
 const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', `--window-size=390,844`, `--remote-debugging-port=${port}`, '--remote-allow-origins=*', `--user-data-dir=${profile}`, `http://127.0.0.1:4178${base}`], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

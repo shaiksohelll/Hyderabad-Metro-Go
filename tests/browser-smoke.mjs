@@ -2,8 +2,10 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
-const root = new URL('../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../', import.meta.url));
 const base = '/Hyderabad-Metro-Go/';
 const server = createServer(async (request, response) => {
   const requestPath = request.url?.split('?')[0] || '/';
@@ -20,7 +22,7 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(4175, '127.0.0.1', resolve));
 const chromium = process.env.CHROMIUM || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', '--user-data-dir=/tmp/hmg-browser-test', `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
+  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', `--user-data-dir=${join(tmpdir(), `hmg-browser-test-${process.pid}`)}`, `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 try {
