@@ -146,7 +146,12 @@ document.addEventListener('keydown', (event) => {
   if (dialog && trapDialogKeydown(event, dialog)) return;
   if (event.key === 'Escape') {
     const menu = document.querySelector('#mobile-menu');
-    if (menu && !menu.hidden) menu.hidden = true;
+    const button = document.querySelector('[data-action="toggle-menu"]');
+    if (menu) {
+      menu.hidden = true;
+      menu.setAttribute('hidden', '');
+    }
+    if (button) button.setAttribute('aria-expanded', 'false');
   }
 });
 
