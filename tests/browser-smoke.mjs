@@ -7,6 +7,12 @@ import { tmpdir } from 'node:os';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const base = '/Hyderabad-Metro-Go/';
+function contentTypeFor(fileName) {
+  if (fileName.endsWith('.js')) return 'text/javascript';
+  if (fileName.endsWith('.css')) return 'text/css';
+  if (fileName.endsWith('.json')) return 'application/json';
+  return 'text/html';
+}
 const server = createServer(async (request, response) => {
   const requestPath = request.url?.split('?')[0] || '/';
   if (!requestPath.startsWith(base)) { response.writeHead(404); response.end(); return; }
@@ -16,16 +22,18 @@ const server = createServer(async (request, response) => {
   try { await readFile(file); } catch { file = join(root, '404.html'); }
   try {
     const body = await readFile(file);
-    response.writeHead(file.endsWith('404.html') && safe !== '404.html' ? 404 : 200, { 'content-type': file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html' });
+    response.writeHead(file.endsWith('404.html') && safe !== '404.html' ? 404 : 200, { 'content-type': contentTypeFor(file) });
     response.end(body);
   } catch { response.writeHead(500); response.end(); }
 });
 await new Promise((resolve) => server.listen(4175, '127.0.0.1', resolve));
 const chromium = process.env.CHROMIUM || 'chromium';
-  const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', `--user-data-dir=${join(tmpdir(), `hmg-browser-test-${process.pid}`)}`, `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
+const browser = spawn(chromium, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=9238', '--remote-allow-origins=*', `--user-data-dir=${join(tmpdir(), `hmg-browser-test-${process.pid}`)}`, `http://127.0.0.1:4175${base}`], { stdio: 'ignore' });
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
 try {
+  const manifestResponse = await fetch(`http://127.0.0.1:4175${base}manifest.json`);
+  check('manifest is served as application/json', manifestResponse.headers.get('content-type')?.startsWith('application/json'));
   let tabs = [];
   for (let attempt = 0; attempt < 20; attempt += 1) {
     try { tabs = await (await fetch('http://127.0.0.1:9238/json')).json(); if (tabs.length) break; } catch {}
@@ -62,31 +70,33 @@ try {
   await evaluate("document.querySelector('.route-stage')?.click()");
   await waitFor("document.activeElement?.classList.contains('stage-detail')");
   check('route-stage detail receives focus', (await evaluate("document.activeElement?.classList.contains('stage-detail')")) === true);
-  await evaluate("document.querySelector('[data-action=\\\"show-sources\\\"]')?.click()");
+  await evaluate("document.querySelector('[data-action=\"show-sources\"]')?.click()");
   check('source dialog opens', (await evaluate("!document.querySelector('#source-dialog').hidden")) === true);
+  check('external source links prevent opener access', (await evaluate("[...document.querySelectorAll('#source-dialog a[target=\"_blank\"]')].every((link) => { const rel = link.rel.split(/\\s+/); return rel.includes('noopener') && rel.includes('noreferrer'); })")) === true);
   await evaluate("document.querySelector('.dialog-close')?.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true}))");
   check('dialog traps reverse tab', (await evaluate("document.activeElement?.closest('#source-dialog') === document.querySelector('#source-dialog')")) === true);
   await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
   check('Escape closes source dialog', (await evaluate("document.querySelector('#source-dialog').hidden")) === true);
   check('dialog restores trigger focus', (await evaluate("document.activeElement?.getAttribute('data-action') === 'show-sources'")) === true);
-  await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.click()");
-  check('mobile menu opens with aria-expanded true', (await evaluate("document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'true'")) === true);
+  await evaluate("document.querySelector('[data-action=\"toggle-menu\"]')?.click()");
+  check('mobile menu opens with aria-expanded true', (await evaluate("document.querySelector('[data-action=\"toggle-menu\"]')?.getAttribute('aria-expanded') === 'true'")) === true);
   check('opening mobile menu focuses first link', (await evaluate("document.activeElement?.getAttribute('data-nav') === 'home'")) === true);
   await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab' });
   await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab' });
   check('mobile menu Tab order advances to next link', (await evaluate("document.activeElement?.getAttribute('data-nav') === 'plan'")) === true);
-  await evaluate("document.querySelector('#mobile-menu [data-nav=\\\"plan\\\"]')?.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
-  await waitFor("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'");
-  check('Escape from focused menu link closes and restores trigger focus', (await evaluate("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\\\"toggle-menu\\\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'")) === true);
-  await evaluate("document.querySelector('[data-nav=\\\"settings\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
-  await evaluate("document.querySelector('[data-action=\\\"toggle-locale\\\"]')?.click(); if (document.documentElement.dataset.theme !== 'dark') document.querySelector('[data-action=\\\"toggle-theme\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
+  await evaluate("document.querySelector('#mobile-menu [data-nav=\"plan\"]')?.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
+  await waitFor("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\"toggle-menu\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'");
+  check('Escape from focused menu link closes and restores trigger focus', (await evaluate("document.querySelector('#mobile-menu')?.hidden && document.querySelector('[data-action=\"toggle-menu\"]')?.getAttribute('aria-expanded') === 'false' && document.activeElement?.getAttribute('data-action') === 'toggle-menu'")) === true);
+  await evaluate("document.querySelector('[data-nav=\"settings\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
+  await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click(); if (document.documentElement.dataset.theme !== 'dark') document.querySelector('[data-action=\"toggle-theme\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
   check('rapid dispatch renders latest locale', (await evaluate("document.documentElement.lang === 'te'")) === true);
   check('rapid dispatch renders latest theme', (await evaluate("document.documentElement.dataset.theme === 'dark'")) === true);
-  await evaluate("document.querySelector('[data-nav=\\\"home\\\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
+  await evaluate("document.querySelector('[data-nav=\"home\"]')?.click()"); await new Promise((resolve) => setTimeout(resolve, 100));
+  check('Telugu station placeholder is localized', (await evaluate("document.querySelector('#from-station option:first-child')?.textContent.trim() === 'స్టేషన్‌ను ఎంచుకోండి'")) === true);
   await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='miyapur'; document.querySelector('#planner-form').requestSubmit();");
   await new Promise((resolve) => setTimeout(resolve, 250));
   check('planner error focuses alert', (await evaluate("document.activeElement?.id === 'planner-error'")) === true);
-  for (const result of checks) console.log(`${result.ok ? 'PASS' : 'FAIL'}\\t${result.name}`);
+  for (const result of checks) console.log(`${result.ok ? 'PASS' : 'FAIL'}\t${result.name}`);
   if (checks.some((result) => !result.ok)) process.exitCode = 1;
   socket.close();
 } finally { browser.kill(); server.close(); }

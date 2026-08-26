@@ -7,6 +7,12 @@ import { tmpdir } from 'node:os';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const base = '/Hyderabad-Metro-Go/';
+function contentTypeFor(fileName) {
+  if (fileName.endsWith('.js')) return 'text/javascript';
+  if (fileName.endsWith('.css')) return 'text/css';
+  if (fileName.endsWith('.json')) return 'application/json';
+  return 'text/html';
+}
 const server = createServer(async (request, response) => {
   const requestPath = request.url?.split('?')[0] || '/';
   if (!requestPath.startsWith(base)) { response.writeHead(404); response.end(); return; }
@@ -16,13 +22,15 @@ const server = createServer(async (request, response) => {
   try { await readFile(file); } catch { file = join(root, '404.html'); }
   try {
     const body = await readFile(file);
-    response.writeHead(file.endsWith('404.html') && safe !== '404.html' ? 404 : 200, { 'content-type': file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html' });
+    response.writeHead(file.endsWith('404.html') && safe !== '404.html' ? 404 : 200, { 'content-type': contentTypeFor(file) });
     response.end(body);
   } catch { response.writeHead(500); response.end(); }
 });
 await new Promise((resolve) => server.listen(4176, '127.0.0.1', resolve));
 const checks = [];
 const check = (name, condition) => checks.push({ name, ok: Boolean(condition) });
+const manifestResponse = await fetch(`http://127.0.0.1:4176${base}manifest.json`);
+check('manifest is served as application/json in browser QA', manifestResponse.headers.get('content-type')?.startsWith('application/json'));
 
 async function runViewport(width, height, port) {
   const chromium = process.env.CHROMIUM || 'chromium';
@@ -58,7 +66,7 @@ async function runViewport(width, height, port) {
       await waitFor("document.querySelector('h1') && document.querySelector('[data-nav=\"settings\"]')");
       await waitFor(`window.innerWidth === ${width} && window.innerHeight === ${height}`);
     };
-    const mapGeometryExpression = "(() => { const svg = document.querySelector('.network-map'); const padding = 72; const width = 1280; const height = 720; const points = [...svg.querySelectorAll('circle')].map((node) => node.getBBox()); const stationLabels = [...svg.querySelectorAll('.map-label')].map((node) => node.getBBox()); const legendLabels = [...svg.querySelectorAll('.map-legend-label')].map((node) => node.getBBox()); const inside = (box) => box.x >= padding && box.y >= padding && box.x + box.width <= width - padding && box.y + box.height <= height - padding; const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; const allLabels = stationLabels.concat(legendLabels); return { pointsInside: points.every(inside), stationLabelCount: stationLabels.length, stationLabelsInside: stationLabels.every(inside), stationLabelsVisible: stationLabels.every((box) => box.width > 0 && box.height > 0), stationLabelsNoCollision: stationLabels.every((box, index) => stationLabels.slice(index + 1).every((other) => !overlap(box, other))), legendLabelCount: legendLabels.length, legendLabelsInside: legendLabels.every(inside), legendLabelsVisible: legendLabels.every((box) => box.width > 0 && box.height > 0), legendLabelsNoCollision: legendLabels.every((box, index) => legendLabels.slice(index + 1).every((other) => !overlap(box, other))) }; })()";
+    const mapGeometryExpression = "(() => { const svg = document.querySelector('.network-map'); const padding = 72; const width = 1280; const height = 720; const points = [...svg.querySelectorAll('circle')].map((node) => node.getBBox()); const stationLabels = [...svg.querySelectorAll('.map-label')].map((node) => node.getBBox()); const legendLabels = [...svg.querySelectorAll('.map-legend-label')].map((node) => node.getBBox()); const inside = (box) => box.x >= padding && box.y >= padding && box.x + box.width <= width - padding && box.y + box.height <= height - padding; const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; return { pointsInside: points.every(inside), stationLabelCount: stationLabels.length, stationLabelsInside: stationLabels.every(inside), stationLabelsVisible: stationLabels.every((box) => box.width > 0 && box.height > 0), stationLabelsNoCollision: stationLabels.every((box, index) => stationLabels.slice(index + 1).every((other) => !overlap(box, other))), legendLabelCount: legendLabels.length, legendLabelsInside: legendLabels.every(inside), legendLabelsVisible: legendLabels.every((box) => box.width > 0 && box.height > 0), legendLabelsNoCollision: legendLabels.every((box, index) => legendLabels.slice(index + 1).every((other) => !overlap(box, other))) }; })()";
     const visibleElements = "[...document.querySelectorAll('button, select, input, a[href]')].filter((element) => !element.closest('[hidden]') && getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0)";
     await cdp('Page.enable');
     await cdp('Runtime.enable');
@@ -80,6 +88,7 @@ async function runViewport(width, height, port) {
     const englishAlternative = await evaluate("document.querySelector('.text-alternative')?.textContent || ''");
     await evaluate("document.querySelector('[data-action=\"toggle-locale\"]')?.click()");
     await waitFor("document.documentElement.lang === 'te'");
+    check(`${width}x${height}: Telugu station placeholder is localized`, await evaluate("document.querySelector('#from-station option:first-child')?.textContent.trim() === 'స్టేషన్‌ను ఎంచుకోండి'"));
     const teluguGeometry = await evaluate(mapGeometryExpression);
     check(`${width}x${height}: Telugu SVG station-label count is exactly zero by design`, teluguGeometry?.stationLabelCount === 0);
     check(`${width}x${height}: three legend labels remain visible and geometrically valid in Telugu`, teluguGeometry?.legendLabelCount === 3 && teluguGeometry?.legendLabelsInside && teluguGeometry?.legendLabelsVisible && teluguGeometry?.legendLabelsNoCollision);

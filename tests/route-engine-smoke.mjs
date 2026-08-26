@@ -1,5 +1,5 @@
 import { buildGraph, planJourney } from '../src/route-engine.js';
-import { lineOrders, stations, lines, transferConnections } from '../src/data.js';
+import { lineOrders, stations, lines } from '../src/data.js';
 import { mapPointFor, mapStationPoints, renderMap, VIEWBOX, textMapAlternative } from '../src/map-view.js';
 
 const checks = [];
