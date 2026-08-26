@@ -75,7 +75,8 @@ export function renderMap({ highlightedIds = [], selectedStationId = null, local
   const pgPoint = mapPointFor('blue', 'parade-ground');
   const jbsPoint = mapPointFor('green', 'jbs-parade-ground');
   if (pgPoint && jbsPoint) {
-    parts.push(`<line class="transfer-connector" x1="${pgPoint[0]}" y1="${pgPoint[1]}" x2="${jbsPoint[0]}" y2="${jbsPoint[1]}" stroke="#666" stroke-width="3" stroke-dasharray="6 4" opacity="0.7" />`);    parts.push(`<text x="${(pgPoint[0] + jbsPoint[0]) / 2 + 12}" y="${(pgPoint[1] + jbsPoint[1]) / 2}" class="transfer-label" font-size="9" fill="#666">⇆</text>`);
+    parts.push(`<line class="transfer-connector" x1="${pgPoint[0]}" y1="${pgPoint[1]}" x2="${jbsPoint[0]}" y2="${jbsPoint[1]}" stroke="#666" stroke-width="3" stroke-dasharray="6 4" opacity="0.7" />`);
+    parts.push(`<text x="${(pgPoint[0] + jbsPoint[0]) / 2 + 12}" y="${(pgPoint[1] + jbsPoint[1]) / 2}" class="transfer-label" font-size="9" fill="#666">⇆</text>`);
   }
   parts.push('</svg>');
   return parts.join('');
@@ -86,8 +87,8 @@ function escapeXml(value = '') {
 }
 
 export function textMapAlternative(locale = 'en') {
-  const lineDescriptions = Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${escapeXml(lines[lineId].name)} (${lines[lineId].code})</strong>: ${order.map((stationId) => escapeXml(stationLabel(stationId, locale))).join(' \u2192 ')}</p>`).join('');
-  const interchangeDescriptions = '<p><strong>Interchanges</strong>: Ameerpet (Red \u2194 Blue); MG Bus Station (Red \u2194 Green); Parade Ground (Blue) \u2194 JBS Parade Ground (Green) \u2014 connected interchange complex, walking path and duration unavailable.</p>';
+  const lineDescriptions = Object.entries(lineOrders).map(([lineId, order]) => `<p><strong>${escapeXml(lines[lineId].name)} (${lines[lineId].code})</strong>: ${order.map((stationId) => escapeXml(stationLabel(stationId, locale))).join(' → ')}</p>`).join('');
+  const interchangeDescriptions = '<p><strong>Interchanges</strong>: Ameerpet (Red ↔ Blue); MG Bus Station (Red ↔ Green); Parade Ground (Blue) ↔ JBS Parade Ground (Green) — connected interchange complex, walking path and duration unavailable.</p>';
   return lineDescriptions + interchangeDescriptions;
 }
 

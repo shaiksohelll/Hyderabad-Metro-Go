@@ -5,7 +5,7 @@ import { planJourney } from './route-engine.js';
 import { dispatch, getState, subscribe } from './store.js';
 import { appBasePath, assetUrl } from './config.js';
 import { listenForBack, navigate, stationIdFromLocation, viewFromLocation } from './router.js';
-import { renderApp } from './view.js';
+import { localizedStageDescription, renderApp } from './view.js';
 
 const app = document.querySelector('#app');
 let renderQueued = false;
@@ -97,8 +97,9 @@ document.addEventListener('click', (event) => {
   const stageButton = event.target.closest('[data-stage-index]');
   if (stageButton) {
     const index = Number(stageButton.dataset.stageIndex);
-    const step = getState().routeResult?.route?.steps[index];
-    dispatch({ type: 'SELECT_STAGE', index, label: step?.text || 'Stage selected.' });
+    const state = getState();
+    const step = state.routeResult?.route?.steps[index];
+    dispatch({ type: 'SELECT_STAGE', index, label: localizedStageDescription(step, state.locale) });
     focusSelector('.stage-detail');
     return;
   }
@@ -152,11 +153,11 @@ document.addEventListener('keydown', (event) => {
   if (dialog && trapDialogKeydown(event, dialog)) return;
   if (event.key === 'Escape') {
     const menu = document.querySelector('#mobile-menu');
+    if (!menu || menu.hidden) return;
+    event.preventDefault();
     const button = document.querySelector('[data-action="toggle-menu"]');
-    if (menu) {
-      menu.hidden = true;
-      menu.setAttribute('hidden', '');
-    }
+    menu.hidden = true;
+    menu.setAttribute('hidden', '');
     if (button) {
       button.setAttribute('aria-expanded', 'false');
       button.focus();

@@ -1,4 +1,4 @@
-import { displayName, lineName, lines, allStations, stationDetail, stations, sources, fareZones } from './data.js';
+import { displayName, lineName, lineOrders, lines, allStations, stationDetail, stations, sources, fareZones } from './data.js';
 import { renderMap, routeStationIds, textMapAlternative } from './map-view.js';
 
 const messages = {
@@ -19,6 +19,55 @@ function esc(value = '') {
 }
 
 function t(state, key) { return messages[state.locale]?.[key] || messages.en[key] || key; }
+function rideTerminalStationId(step) {
+  const order = lineOrders[step?.lineId] || [];
+  if (!order.length) return null;
+  return step.direction === 'toward-end' ? order.at(-1) : order[0];
+}
+function rideTerminalName(step, locale) {
+  const stationId = rideTerminalStationId(step);
+  return stationId ? displayName(stationId, locale) : step?.terminal || '';
+}
+export function localizedStageDescription(step, locale = 'en') {
+  if (!step) return locale === 'te' ? 'దశను ఎంచుకున్నారు.' : 'Stage selected.';
+  const station = (stationId) => displayName(stationId, locale);
+  const isTelugu = locale === 'te';
+  if (step.type === 'start') return isTelugu ? `${station(step.stationId)} వద్ద ప్రారంభించండి.` : `Start at ${station(step.stationId)}.`;
+  if (step.type === 'ride') {
+    const routeLine = step.lineName || lineName(step.lineId);
+    const terminal = rideTerminalName(step, locale);
+    return isTelugu ? `${routeLine}లో ${terminal} వైపు ప్రయాణించండి.` : `Take ${routeLine} toward ${terminal}.`;
+  }
+  if (step.type === 'change' && step.crossStation) {
+    return isTelugu
+      ? `${station(step.stationId)} మరియు ${station(step.toStationId)} మధ్య మారండి.`
+      : `Transfer between ${station(step.stationId)} and ${station(step.toStationId)}.`;
+  }
+  if (step.type === 'change') {
+    return isTelugu
+      ? `${station(step.stationId)} వద్ద ${step.fromLine} నుండి ${step.toLine}కు మారండి.`
+      : `Change from ${step.fromLine} to ${step.toLine} at ${station(step.stationId)}.`;
+  }
+  if (step.type === 'arrive') return isTelugu ? `${station(step.stationId)} చేరుకోండి.` : `Arrive at ${station(step.stationId)}.`;
+  return step.text || (isTelugu ? 'ప్రయాణ దశ.' : 'Journey stage.');
+}
+function localizedStageHeading(step, locale = 'en') {
+  const station = (stationId) => displayName(stationId, locale);
+  const isTelugu = locale === 'te';
+  if (step.type === 'start') return isTelugu ? `${station(step.stationId)} వద్ద ప్రారంభించండి` : `Start at ${station(step.stationId)}`;
+  if (step.type === 'ride') return `${step.lineName || lineName(step.lineId)} · ${isTelugu ? `${rideTerminalName(step, locale)} వైపు` : `toward ${rideTerminalName(step, locale)}`}`;
+  if (step.type === 'change' && step.crossStation) return `${isTelugu ? 'మార్పిడి' : 'Transfer'}: ${station(step.stationId)} ↔ ${station(step.toStationId)}`;
+  if (step.type === 'change') return isTelugu ? `${station(step.stationId)} వద్ద మారండి` : `Change at ${station(step.stationId)}`;
+  if (step.type === 'arrive') return isTelugu ? `${station(step.stationId)} చేరుకోండి` : `Arrive at ${station(step.stationId)}`;
+  return localizedStageDescription(step, locale);
+}
+function localizedStageNote(step, locale = 'en') {
+  if (!step.note) return '';
+  if (locale !== 'te' || step.type !== 'change') return step.note;
+  return step.crossStation
+    ? 'నడక మార్గం మరియు మార్పిడి వ్యవధి అందుబాటులో లేవు.'
+    : 'మార్పిడి మార్గం మరియు వ్యవధి అందుబాటులో లేవు.';
+}
 function statusTag(text, tone = 'neutral') { return `<span class="status-tag status-${tone}">${esc(text)}</span>`; }
 function stationOptions(selectedId, locale) {
   const placeholder = messages[locale]?.chooseStation || messages.en.chooseStation;
@@ -26,7 +75,7 @@ function stationOptions(selectedId, locale) {
 }
 function nav(state) {
   const items = [['home', 'home'], ['plan', 'plan'], ['map', 'map'], ['stations', 'stations'], ['saved', 'saved'], ['settings', 'settings']];
-  return `<nav class="primary-nav" aria-label="Primary navigation"><div class="brand-mark"><span class="brand-kicker">HMG</span><span>Hyderabad<br />Metro Go</span></div>${items.map(([view, label]) => `<button class="nav-item ${state.view === view ? 'is-active' : ''}" data-nav="${view}" type="button" aria-current="${state.view === view ? 'page' : 'false'}"><span class="nav-index">${String(items.findIndex(([id]) => id === view) + 1).padStart(2, '0')}</span><span>${esc(t(state, label))}</span></button>`).join('')}</nav>`;
+  return `<nav class="primary-nav" aria-label="Primary navigation"><div class="brand-mark"><span class="brand-kicker">HMG</span><span>Hyderabad<br />Metro Go</span></div>${items.map(([view, label]) => `<button class="nav-item ${state.view === view ? 'is-active' : ''}" data-nav="${view}" type="button"${state.view === view ? ' aria-current="page"' : ''}><span class="nav-index">${String(items.findIndex(([id]) => id === view) + 1).padStart(2, '0')}</span><span>${esc(t(state, label))}</span></button>`).join('')}</nav>`;
 }
 function mobileHeader(state) { return `<header class="mobile-header"><button class="menu-button" type="button" data-action="toggle-menu" aria-expanded="false" aria-controls="mobile-menu">Menu</button><span class="mobile-brand">Hyderabad Metro Go</span><button class="language-button" type="button" data-action="toggle-locale" aria-label="Switch language">${state.locale === 'en' ? 'తెలుగు' : 'EN'}</button></header>`; }
 function dataBanner() { return `<div class="data-banner" role="status"><span class="signal-dot"></span><span><strong>Official static network topology</strong> · operational data unavailable</span><button class="text-button" type="button" data-action="show-sources">Source & limits</button></div>`; }
@@ -38,9 +87,11 @@ function planner(state) {
 
 function routeMetric(label, value) { return `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`; }
 function routeStage(index, step, state) {
-  const label = step.type === 'start' ? `Start at ${displayName(step.stationId, state.locale)}` : step.type === 'ride' ? `${step.lineName} · toward ${step.terminal}` : step.type === 'change' ? (step.crossStation ? `Transfer: ${displayName(step.stationId, state.locale)} ↔ ${displayName(step.toStationId, state.locale)}` : `Change at ${displayName(step.stationId, state.locale)}`) : `Arrive at ${displayName(step.stationId, state.locale)}`;
-  const note = step.note ? `<small class="stage-note">${esc(step.note)}</small>` : '';
-  return `<button class="route-stage stage-${step.type} ${state.selectedStageIndex === index ? 'is-selected' : ''}" type="button" data-stage-index="${index}" aria-pressed="${state.selectedStageIndex === index}"><span class="stage-number">${String(index + 1).padStart(2, '0')}</span><span class="stage-copy"><strong>${esc(label)}</strong><span>${esc(step.text)}</span>${note}</span><span class="stage-arrow" aria-hidden="true">${step.type === 'change' ? '↗' : '→'}</span></button>`;
+  const label = localizedStageHeading(step, state.locale);
+  const description = localizedStageDescription(step, state.locale);
+  const stageNote = localizedStageNote(step, state.locale);
+  const note = stageNote ? `<small class="stage-note">${esc(stageNote)}</small>` : '';
+  return `<button class="route-stage stage-${step.type} ${state.selectedStageIndex === index ? 'is-selected' : ''}" type="button" data-stage-index="${index}" aria-pressed="${state.selectedStageIndex === index}"><span class="stage-number">${String(index + 1).padStart(2, '0')}</span><span class="stage-copy"><strong>${esc(label)}</strong><span>${esc(description)}</span>${note}</span><span class="stage-arrow" aria-hidden="true">${step.type === 'change' ? '↗' : '→'}</span></button>`;
 }
 function routeResult(state, result) {
   if (!result) return `<section class="result-panel empty-state" aria-labelledby="result-heading"><div class="section-kicker">02 / ROUTE LEDGER</div><h2 id="result-heading">Your route will appear here</h2><p>Select an origin and destination to see line, direction, transfer, and source status.</p><div class="empty-rule"><span></span><span></span><span></span></div></section>`;
@@ -54,7 +105,7 @@ function selectedStage(state) {
   const route = state.routeResult?.route;
   if (!route || state.selectedStageIndex === null || !route.steps[state.selectedStageIndex]) return '';
   const step = route.steps[state.selectedStageIndex];
-  return `<aside class="stage-detail" aria-live="polite" tabindex="-1"><div class="section-kicker">SELECTED STAGE</div><h3>${esc(step.text)}</h3><p>Operational platform, exit, fare, and timing details are <strong>unavailable</strong> until individually verified.</p></aside>`;
+  return `<aside class="stage-detail" aria-live="polite" tabindex="-1"><div class="section-kicker">SELECTED STAGE</div><h3>${esc(localizedStageDescription(step, state.locale))}</h3><p>Operational platform, exit, fare, and timing details are <strong>unavailable</strong> until individually verified.</p></aside>`;
 }
 function mapPanel(state) {
   const highlightedIds = routeStationIds(state.routeResult?.route);
@@ -69,7 +120,13 @@ function stationPage(state) {
 function stationSearch(state) { return `<div class="section-kicker">STATIONS</div><h2>Find a station</h2><p class="lede">Open a station record or use it in the planner. Optional station facts remain unavailable until verified.</p><div class="station-search-list">${allStations().map((station) => `<button type="button" class="station-row" data-station-id="${station.id}"><span class="station-name">${esc(displayName(station.id, state.locale))}</span><span class="station-lines">${esc(station.lineIds.map(lineName).join(' · '))}</span><span aria-hidden="true">→</span></button>`).join('')}</div>`; }
 function savedPage(state) { return `<section class="content-page" aria-labelledby="saved-heading"><div class="section-kicker">SAVED</div><h2 id="saved-heading">Saved routes</h2><p>Saved routes use stable station IDs. They do not make stale operational data current.</p>${state.savedRoutes.length ? state.savedRoutes.map((route) => `<div class="saved-row"><div><strong>${esc(displayName(route.originStationId, state.locale))} → ${esc(displayName(route.destinationStationId, state.locale))}</strong><span>${esc(route.explanation)}</span></div><button type="button" class="secondary-action" data-saved-id="${route.id}">Remove</button></div>`).join('') : '<div class="notice-box"><strong>No saved routes yet.</strong><p>Plan a route, then choose Save route.</p></div>'}</section>`; }
 function settingsPage(state) { return `<section class="content-page" aria-labelledby="settings-heading"><div class="section-kicker">SETTINGS</div><h2 id="settings-heading">Make the journey readable</h2><fieldset class="settings-group"><legend class="sr-only">Display and language preferences</legend><div class="settings-list"><div class="setting-row"><div><strong>Language</strong><small>English / Telugu (partial support)</small></div><button class="secondary-action" type="button" data-action="toggle-locale">${state.locale === 'en' ? 'తెలుగు' : 'English'}</button></div><div class="setting-row"><div><strong>Theme</strong><small>Dark mode is reserved for Live Journey and low-glare use.</small></div><button class="secondary-action" type="button" data-action="toggle-theme">${state.theme === 'light' ? 'Use dark mode' : 'Use light mode'}</button></div><label class="setting-row"><span><strong>Reduced motion</strong><small>State changes appear immediately.</small></span><input type="checkbox" data-pref="reducedMotion" ${state.reducedMotion ? 'checked' : ''} /></label><label class="setting-row"><span><strong>High contrast</strong><small>Increase boundary and focus visibility.</small></span><input type="checkbox" data-pref="highContrast" ${state.highContrast ? 'checked' : ''} /></label></div></fieldset><p class="notice-box language-boundary"><strong>Telugu support is partial.</strong> Navigation, station names, and core planner labels are translated; some explanatory, status, and source-boundary text remains in English.</p></section>`; }
-function liveJourney(state) { const route = state.routeResult?.route; if (!route) return `<section class="content-page"><h2>Live Journey</h2><p>Start from a route result. No route is currently active.</p></section>`; const next = route.steps.find((step) => step.type === 'ride' || step.type === 'change') || route.steps[route.steps.length - 1]; return `<section class="live-page" aria-labelledby="live-heading"><div class="live-topline"><button class="back-link" type="button" data-nav="plan">← Return to route</button>${statusTag('Static companion · not live', 'warning')}</div><div class="section-kicker">LIVE JOURNEY / REDUCED DISTRACTION</div><h2 id="live-heading">${esc(next?.lineName || 'Journey')} ${next?.terminal ? `→ ${esc(next.terminal)}` : ''}</h2><p class="live-next-label">NEXT USEFUL DECISION</p><div class="live-next">${esc(next?.text || 'Review your route')}</div><div class="live-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${route.steps.length}" aria-valuenow="1"><span style="width:${Math.max(18, Math.round(100 / route.steps.length))}%"></span></div><p class="live-note">Progress is not live. This view preserves the static route sequence and does not simulate train movement.</p><button class="secondary-action" type="button" data-nav="plan">View complete route</button></section>`; }
+function liveJourney(state) {
+  const route = state.routeResult?.route;
+  if (!route) return `<section class="content-page"><h2>Live Journey</h2><p>Start from a route result. No route is currently active.</p></section>`;
+  const next = route.steps.find((step) => step.type === 'ride' || step.type === 'change') || route.steps[route.steps.length - 1];
+  const terminal = next?.type === 'ride' ? rideTerminalName(next, state.locale) : '';
+  return `<section class="live-page" aria-labelledby="live-heading"><div class="live-topline"><button class="back-link" type="button" data-nav="plan">← Return to route</button>${statusTag('Static companion · not live', 'warning')}</div><div class="section-kicker">LIVE JOURNEY / REDUCED DISTRACTION</div><h2 id="live-heading">${esc(next?.lineName || 'Journey')} ${terminal ? `→ ${esc(terminal)}` : ''}</h2><p class="live-next-label">NEXT USEFUL DECISION</p><div class="live-next">${esc(localizedStageDescription(next, state.locale))}</div><div class="live-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${route.steps.length}" aria-valuenow="1"><span style="width:${Math.max(18, Math.round(100 / route.steps.length))}%"></span></div><p class="live-note">Progress is not live. This view preserves the static route sequence and does not simulate train movement.</p><button class="secondary-action" type="button" data-nav="plan">View complete route</button></section>`;
+}
 function homePage(state) { return `<main id="main-content" class="main-content"><div class="content-wrap">${dataBanner()}${planner(state)}${routeResult(state, state.routeResult)}${selectedStage(state)}</div><div class="context-wrap">${mapPanel(state)}<section class="support-panel"><div class="section-kicker">04 / DATA BOUNDARY</div><h2>Official topology, honest limits</h2><p>Network topology and three interchange relationships are sourced from the official L&T Metro Rail static network map. Arrival, platform, exit, facility, parking, accessibility equipment, and service status remain unavailable until verified.</p><div class="state-list"><span>${statusTag('Official static topology', 'info')}</span><span>${statusTag('Timing unavailable', 'warning')}</span><span>${statusTag('Fare zones ₹11–₹69', 'info')}</span><span>${statusTag('Exact route fare unavailable', 'warning')}</span></div></section></div></main>`; }
 
 export function renderApp(state) {
