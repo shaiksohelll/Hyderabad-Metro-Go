@@ -61,6 +61,9 @@ try {
   };
   await cdp('Runtime.enable');
   await waitFor("document.querySelector('#from-station') && document.querySelector('#to-station') && document.querySelector('#planner-form')");
+  await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit(); document.querySelector('[data-action=\"swap\"]')?.click();");
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  check('planner mutation cannot be overwritten by a stale calculation', (await evaluate("document.querySelector('.result-panel')?.classList.contains('empty-state') && document.querySelector('#from-station')?.value === 'raidurg' && document.querySelector('#to-station')?.value === 'miyapur'")) === true);
   await evaluate("document.querySelector('#from-station').value='miyapur'; document.querySelector('#to-station').value='raidurg'; document.querySelector('#planner-form').requestSubmit();");
   await waitFor("document.querySelector('.stage-start') && document.body.textContent.includes('toward L B Nagar') && document.querySelector('.stage-change')");
   check('route result renders', Boolean(await evaluate("document.querySelector('#result-heading')")));

@@ -56,17 +56,19 @@ function planFromForm(form) {
   dispatch({ type: 'SET_DESTINATION', stationId: destinationStationId });
   dispatch({ type: 'SET_OBJECTIVE', objective });
   dispatch({ type: 'PLAN_START' });
-  window.setTimeout(() => {
-    const result = planJourney({ originStationId, destinationStationId, objective });
-    if (result.status === 'success') {
-      dispatch({ type: 'PLAN_SUCCESS', result });
-      focusSelector('.result-panel');
-    } else {
-      dispatch({ type: 'PLAN_ERROR', message: result.message });
-      focusSelector('#planner-error');
-    }
-  }, 120);
   if (state.view !== 'home' && state.view !== 'plan') dispatch({ type: 'NAVIGATE', view: 'plan' });
+
+  // The route engine is synchronous and fast for this fixed network. Avoid an
+  // artificial timer so a later planner mutation cannot be overwritten by a
+  // result calculated from stale captured inputs.
+  const result = planJourney({ originStationId, destinationStationId, objective });
+  if (result.status === 'success') {
+    dispatch({ type: 'PLAN_SUCCESS', result });
+    focusSelector('.result-panel');
+  } else {
+    dispatch({ type: 'PLAN_ERROR', message: result.message });
+    focusSelector('#planner-error');
+  }
 }
 
 function handleNav(view, stationId = null) {
